@@ -10,7 +10,8 @@ use crate::generics::{get_impl_block_generics, get_struct_block_generics, get_wh
 pub fn derive(ds: &DataStruct, ident: Ident, generics: &Generics) -> Result<TokenStream, TokenStream> {
     let TelocStruct {
         initable,
-        injectable
+        injectable,
+        injectable_cloned
     } = parse_teloc_struct(ds)?;
 
     let impl_block_generics = get_impl_block_generics(&generics);
@@ -31,7 +32,24 @@ pub fn derive(ds: &DataStruct, ident: Ident, generics: &Generics) -> Result<Toke
     let mut needed_traits = quote! {};
     for (i, tr) in trait_need.enumerate() {
         needed_traits.extend(quote! { Get<#tr> });
-        if i != injectable.len() {
+        if i != injectable.len() - 1 {
+            needed_traits.extend(quote! { + });
+        }
+    }
+
+    let injectable_cloned_ident = injectable_cloned
+        .iter()
+        .map(|f| f.field);
+    let trait_cloned_need = injectable_cloned
+        .iter()
+        .map(|f| f.field_ty);
+
+    for (i, tr) in trait_cloned_need.enumerate() {
+        if i == 0 {
+            needed_traits.extend(quote! { + })
+        }
+        needed_traits.extend(quote! { GetClone<#tr> });
+        if i != injectable_cloned.len() - 1 {
             needed_traits.extend(quote! { + });
         }
     }
@@ -47,6 +65,9 @@ pub fn derive(ds: &DataStruct, ident: Ident, generics: &Generics) -> Result<Toke
                     #(
                         #injectable_ident : Get::get(container),
                     )*
+                    #(
+                        #injectable_cloned_ident : GetClone::get_clone(container),
+                    )*
                 }
             }
         }
@@ -57,16 +78,28 @@ fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
     let fields = get_fields(ds);
     let mut initable = vec![];
     let mut injectable = vec![];
+    let mut injectable_cloned = vec![];
     for field in fields {
         match get_1_teloc_attr(field.attrs.as_slice())? {
             Some(attr) => {
-                let teloc = attr.parse_args::<TelocAttr>().map_err(|_| compile_error("Error when parsing args"))?;
-                let path = get_ty_path(&field.ty)?;
-                initable.push(InitableField {
-                    args: teloc.exprs,
-                    ty_path: path,
-                    field: &field.ident.as_ref().unwrap() // TODO: unnamed fields
-                })
+                match attr.path.get_ident().unwrap().to_string().as_str() {
+                    "new" => {
+                        let teloc = attr.parse_args::<TelocAttr>().map_err(|_| compile_error("Error when parsing args"))?;
+                        let path = get_ty_path(&field.ty)?;
+                        initable.push(InitableField {
+                            args: teloc.exprs,
+                            ty_path: path,
+                            field: &field.ident.as_ref().unwrap() // TODO: unnamed fields
+                        })
+                    }
+                    "clone" => {
+                        injectable_cloned.push(InjectableField {
+                            field_ty: &field.ty,
+                            field: &field.ident.as_ref().unwrap() // TODO: unnamed fields
+                        })
+                    }
+                    _ => unreachable!()
+                }
             }
             None => {
                 injectable.push(InjectableField {
@@ -78,7 +111,8 @@ fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
     }
     Ok(TelocStruct {
         initable,
-        injectable
+        injectable,
+        injectable_cloned
     })
 }
 
@@ -104,6 +138,7 @@ impl Parse for TelocAttr {
 struct TelocStruct<'a> {
     initable: Vec<InitableField<'a>>,
     injectable: Vec<InjectableField<'a>>,
+    injectable_cloned: Vec<InjectableField<'a>>,
 }
 
 struct InitableField<'a> {

@@ -1,9 +1,9 @@
-use teloc_macros::{Teloc, container};
+pub use teloc_macros::{Teloc, container};
 
-trait Get<T> {
+pub trait Get<T> {
     fn get(&mut self) -> T;
 }
-trait GetClone<T: Clone> {
+pub trait GetClone<T: Clone> {
     fn get_clone(&self) -> T;
 }
 
@@ -11,6 +11,7 @@ trait GetClone<T: Clone> {
 mod tests {
     use teloc_macros::{Teloc, container};
     use super::{Get, GetClone};
+    use std::rc::Rc;
 
     struct ConstService {
         data: i32,

@@ -15,6 +15,7 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
 
     Ok(quote! {
         {
+            #[allow(non_snake_case)]
             struct Container {
                 #(#field : Option<#ty>),*
             }
