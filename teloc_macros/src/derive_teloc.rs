@@ -64,7 +64,7 @@ pub fn derive(ds: &DataStruct, ident: Ident, generics: &Generics) -> Result<Toke
 
     Ok(quote! {
         impl #impl_block_generics #ident #struct_block_generics #where_clause {
-            pub fn init<T: #needed>(container: &mut T) -> Self {
+            pub fn init<T: #needed>(container: &T) -> Self {
                 Self {
                     #(
                         #init_field : #init_field_ty::init(#init_field_exprs),

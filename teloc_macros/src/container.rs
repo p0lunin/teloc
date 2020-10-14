@@ -15,21 +15,20 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
 
     Ok(quote! {
         {
+            use std::cell::Cell;
             #[allow(non_snake_case)]
             struct Container {
-                #(#field : Option<#ty>),*
+                #(#field : Cell<Option<#ty>>),*
             }
             impl teloc::Get<()> for Container {
-                fn get(&mut self) -> () {
+                fn get(&self) -> () {
                     ()
                 }
             }
             #(
-                impl teloc::Get<#ty2> for Container {
-                    fn get(&mut self) -> #ty2 {
-                        let mut res = None;
-                        std::mem::swap(&mut self.#field2, &mut res);
-                        res.unwrap()
+                impl teloc::Get<#ty2> for teloc::ContainerWrapper<Container> {
+                    fn get(&self) -> #ty2 {
+                        self.0.#field2.replace(None).unwrap()
                     }
                 }
                 /*impl GetClone<#ty2> for Container {
@@ -38,15 +37,17 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
                     }
                 }*/
             )*
-            let mut container = Container {
+            let container = Container {
                 #(
-                    #field3: None,
+                    #field3: Cell::new(None),
                 )*
             };
+            let wrapper = teloc::ContainerWrapper(container);
+            let cref = &wrapper;
             #(
-                container.#field4 = Some(#ty3::init(&mut container));
+                wrapper.0.#field4.replace(Some(#ty3::init(cref)));
             )*
-            container
+            wrapper
         }
     })
 }

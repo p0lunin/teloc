@@ -23,7 +23,6 @@ pub fn derive_teloc(tokens: TokenStream) -> TokenStream {
         Data::Union(_) => return compile_error("Expected struct, found union").into(),
     };
     let res = derive_teloc::derive(&s, input.ident, &input.generics);
-    println!("{}", res.as_ref().unwrap());
     res.unwrap_or_else(identity).into()
 }
 
