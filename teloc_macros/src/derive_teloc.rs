@@ -1,9 +1,9 @@
-use syn::{DataStruct, Expr, Type, Field, Fields, Generics, Path};
+use syn::{DataStruct, Expr, Type, Field, Fields, Generics};
 use proc_macro2::{TokenStream, Ident};
 use syn::punctuated::Punctuated;
 use syn::Token;
 use quote::{quote};
-use crate::common::{get_1_teloc_attr, compile_error, get_ty_path, to_turbofish};
+use crate::common::{get_1_teloc_attr, compile_error, to_turbofish};
 use syn::parse::{Parse, ParseBuffer};
 use crate::generics::{get_impl_block_generics, get_struct_block_generics, get_where_clause};
 
@@ -11,7 +11,7 @@ pub fn derive(ds: &DataStruct, ident: Ident, generics: &Generics) -> Result<Toke
     let TelocStruct {
         initable,
         injectable,
-        injectable_cloned
+        injectable_cloned: _injectable_cloned
     } = parse_teloc_struct(ds)?;
 
     let impl_block_generics = get_impl_block_generics(&generics);
@@ -32,9 +32,6 @@ pub fn derive(ds: &DataStruct, ident: Ident, generics: &Generics) -> Result<Toke
     let injectable_ident = injectable
         .iter()
         .map(|f| f.field);
-    let injectable_ident2 = injectable
-        .iter()
-        .map(|f| f.field);
     let trait_need = injectable
         .iter()
         .map(|f| f.field_ty);
@@ -46,7 +43,6 @@ pub fn derive(ds: &DataStruct, ident: Ident, generics: &Generics) -> Result<Toke
             needed.extend(quote! { + });
         }
     }
-    let needed2 = needed.clone();
     /*
     let injectable_cloned_ident = injectable_cloned
         .iter()

@@ -3,7 +3,6 @@ use syn::{Token, Type};
 use syn::parse::{Parse, ParseBuffer};
 use crate::common::{get_ty_path, expect_1_path_ident};
 use quote::quote;
-use itertools::Itertools;
 
 pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
     let field = get_field_idents(input.types.as_slice());
