@@ -3,6 +3,7 @@ use syn::{Token, Type};
 use syn::parse::{Parse, ParseBuffer};
 use crate::common::{get_ty_path, expect_1_path_ident};
 use quote::quote;
+use itertools::Itertools;
 
 pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
     let field = get_field_idents(input.types.as_slice());
@@ -19,8 +20,13 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
             struct Container {
                 #(#field : Option<#ty>),*
             }
+            impl teloc::Get<()> for Container {
+                fn get(&mut self) -> () {
+                    ()
+                }
+            }
             #(
-                impl Get<#ty2> for Container {
+                impl teloc::Get<#ty2> for Container {
                     fn get(&mut self) -> #ty2 {
                         let mut res = None;
                         std::mem::swap(&mut self.#field2, &mut res);
@@ -39,7 +45,7 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
                 )*
             };
             #(
-                container.#field4 = Some(#ty3::new(&mut container));
+                container.#field4 = Some(#ty3::init(&mut container));
             )*
             container
         }

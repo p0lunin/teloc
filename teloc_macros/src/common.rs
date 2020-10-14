@@ -1,5 +1,5 @@
 use quote::ToTokens;
-use syn::{Attribute, Type, Path};
+use syn::{Attribute, Type, Path, PathArguments};
 use proc_macro2::{TokenStream, Ident};
 use quote::quote;
 
@@ -9,18 +9,44 @@ pub fn compile_error<T: ToTokens>(data: T) -> proc_macro2::TokenStream {
     }
 }
 
+pub fn to_turbofish(path: &Path) -> TokenStream {
+    let mut res = quote! {};
+    for segment in path.segments.iter() {
+        let ident = &segment.ident;
+        res.extend(quote! {#ident});
+        match &segment.arguments {
+            PathArguments::None => {}
+            PathArguments::AngleBracketed(args) => {
+                res.extend(quote! { ::#args });
+            }
+            _ => unimplemented!()
+        }
+    }
+
+    res
+}
+
 pub fn get_1_teloc_attr(attrs: &[Attribute]) -> Result<Option<&Attribute>, TokenStream> {
-    match attrs {
+    let mut teloc_attrs = vec![];
+    attrs.iter().for_each(|attr| {
+        if attr.path.is_ident("clone") || attr.path.is_ident("init") {
+            teloc_attrs.push(attr);
+        }
+    });
+    match teloc_attrs.as_slice() {
         [] => Ok(None),
         [x] => Ok(Some(x)),
-        _ => Err(compile_error(format!("Expected 0 or 1 attribute, found {}", attrs.len())))
+        _ => Err(compile_error(format!("Expected 0 or 1 `clone` or `init` attribute, found {}", teloc_attrs.len())))
     }
 }
 
 pub fn get_ty_path(ty: &Type) -> Result<&Path, TokenStream> {
     match ty {
         Type::Path(path) => Ok(&path.path),
-        _ => Err(compile_error("Expected path"))
+        _ => {
+            println!("{}", Into::<proc_macro::TokenStream>::into(quote! { #ty }));
+            Err(compile_error("Expected path"))
+        }
     }
 }
 

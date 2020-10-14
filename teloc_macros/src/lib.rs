@@ -14,7 +14,7 @@ use crate::container::ContainerInput;
 use syn::{parse_macro_input, DeriveInput};
 use std::convert::identity;
 
-#[proc_macro_derive(Teloc, attributes(new, clone))]
+#[proc_macro_derive(Teloc, attributes(init, clone))]
 pub fn derive_teloc(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
     let s = match input.data {
@@ -23,6 +23,7 @@ pub fn derive_teloc(tokens: TokenStream) -> TokenStream {
         Data::Union(_) => return compile_error("Expected struct, found union").into(),
     };
     let res = derive_teloc::derive(&s, input.ident, &input.generics);
+    println!("{}", res.as_ref().unwrap());
     res.unwrap_or_else(identity).into()
 }
 

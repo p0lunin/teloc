@@ -3,7 +3,7 @@ use proc_macro2::{TokenStream, Ident};
 use syn::punctuated::Punctuated;
 use syn::Token;
 use quote::{quote};
-use crate::common::{get_1_teloc_attr, compile_error, get_ty_path};
+use crate::common::{get_1_teloc_attr, compile_error, get_ty_path, to_turbofish};
 use syn::parse::{Parse, ParseBuffer};
 use crate::generics::{get_impl_block_generics, get_struct_block_generics, get_where_clause};
 
@@ -19,24 +19,35 @@ pub fn derive(ds: &DataStruct, ident: Ident, generics: &Generics) -> Result<Toke
     let where_clause = get_where_clause(&generics);
 
     let init_field = initable.iter().map(|f| &f.field);
-    let init_field_ty = initable.iter().map(|f| &f.ty_path);
+    let init_field_ty = initable.iter().map(|f| {
+        match f.field_ty {
+            Type::Path(p) => to_turbofish(&p.path),
+            Type::Verbatim(v) => v.clone(),
+            Type::Macro(m) => quote! { #m },
+            _ => unimplemented!(),
+        }
+    });
     let init_field_exprs = initable.iter().map(|f| &f.args);
 
     let injectable_ident = injectable
+        .iter()
+        .map(|f| f.field);
+    let injectable_ident2 = injectable
         .iter()
         .map(|f| f.field);
     let trait_need = injectable
         .iter()
         .map(|f| f.field_ty);
 
-    let mut needed_traits = quote! {};
+    let mut needed = quote! {};
     for (i, tr) in trait_need.enumerate() {
-        needed_traits.extend(quote! { Get<#tr> });
+        needed.extend(quote! { Get<#tr> });
         if i != injectable.len() - 1 {
-            needed_traits.extend(quote! { + });
+            needed.extend(quote! { + });
         }
     }
-
+    let needed2 = needed.clone();
+    /*
     let injectable_cloned_ident = injectable_cloned
         .iter()
         .map(|f| f.field);
@@ -48,26 +59,26 @@ pub fn derive(ds: &DataStruct, ident: Ident, generics: &Generics) -> Result<Toke
         if i == 0 {
             needed_traits.extend(quote! { + })
         }
-        needed_traits.extend(quote! { GetClone<#tr> });
+        needed_traits.extend(quote! { teloc::GetClone<#tr> });
         if i != injectable_cloned.len() - 1 {
             needed_traits.extend(quote! { + });
         }
-    }
+    }*/
 
 
     Ok(quote! {
         impl #impl_block_generics #ident #struct_block_generics #where_clause {
-            pub fn new<T: #needed_traits>(container: &mut T) -> Self {
+            pub fn init<T: #needed>(container: &mut T) -> Self {
                 Self {
                     #(
-                        #init_field : #init_field_ty::new(#init_field_exprs),
+                        #init_field : #init_field_ty::init(#init_field_exprs),
                     )*
                     #(
                         #injectable_ident : Get::get(container),
                     )*
-                    #(
+                    /*#(
                         #injectable_cloned_ident : GetClone::get_clone(container),
-                    )*
+                    )**/
                 }
             }
         }
@@ -83,12 +94,12 @@ fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
         match get_1_teloc_attr(field.attrs.as_slice())? {
             Some(attr) => {
                 match attr.path.get_ident().unwrap().to_string().as_str() {
-                    "new" => {
+                    "init" => {
                         let teloc = attr.parse_args::<TelocAttr>().map_err(|_| compile_error("Error when parsing args"))?;
-                        let path = get_ty_path(&field.ty)?;
+                        let field_ty = &field.ty;
                         initable.push(InitableField {
                             args: teloc.exprs,
-                            ty_path: path,
+                            field_ty,
                             field: &field.ident.as_ref().unwrap() // TODO: unnamed fields
                         })
                     }
@@ -143,7 +154,7 @@ struct TelocStruct<'a> {
 
 struct InitableField<'a> {
     args: Punctuated<Expr, Token![,]>,
-    ty_path: &'a Path,
+    field_ty: &'a Type,
     field: &'a Ident,
 }
 struct InjectableField<'a> {

@@ -24,7 +24,7 @@ pub fn get_struct_block_generics(generics: &Generics) -> TokenStream {
     match params.len() {
         0 => quote!(),
         _ => quote! {
-            <#(#params)*>
+            <#(#params),*>
         },
     }
 }
