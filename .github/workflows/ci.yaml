@@ -46,11 +46,9 @@ jobs:
           override: true
 
       - name: Build
-        uses: actions-rs/cargo@v1
         run: cd teloc && cargo build
 
       - name: Test
-        uses: actions-rs/cargo@v1
         run: cd teloc && cargo test
 
   code-checks macros:
@@ -64,38 +62,36 @@ jobs:
           override: true
           components: rustfmt, clippy
       - name: Cargo fmt
-        run: cd teloc-macros && cargo +nightly fmt --all -- --check
+        run: cd teloc_macros && cargo +nightly fmt --all -- --check
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           override: true
       - name: Cargo clippy
-        run: cd teloc && cargo clippy --all --all-targets --all-features -- -D warnings
+        run: cd teloc_macros && cargo clippy --all --all-targets --all-features -- -D warnings
 
-    build macro:
-      runs-on: ubuntu-latest
-      strategy:
-        matrix:
-          rust:
-            - stable
-            - beta
-            - nightly
+  build macro:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        rust:
+          - stable
+          - beta
+          - nightly
 
-      steps:
-        - uses: actions/checkout@v2
+    steps:
+      - uses: actions/checkout@v2
 
-        - uses: actions-rs/toolchain@v1
-          with:
-            profile: minimal
-            toolchain: ${{ matrix.rust }}
-            override: true
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ matrix.rust }}
+          override: true
 
-        - name: Build
-          uses: actions-rs/cargo@v1
-          run: cd teloc-macros && cargo build
+      - name: Build
+        run: cd teloc_macros && cargo build
 
-        - name: Test
-          uses: actions-rs/cargo@v1
-          run: cd teloc-macros && cargo test
+      - name: Test
+        run: cd teloc_macros && cargo test
 
