@@ -36,7 +36,30 @@ fn test() {
 }
 
 #[derive(Teloc)]
-struct SchemaCloned {
+struct Schema1Cloned {
+    #[by(clone)]
     a: Rc<ControllerA>,
-    b: ControllerB,
+}
+
+#[derive(Teloc)]
+struct Schema2Cloned {
+    #[by(clone)]
+    a: Rc<ControllerA>,
+}
+
+#[test]
+fn test_cloned() {
+    let mut container = container![
+        Rc<ControllerA>,
+        Schema1Cloned,
+        Schema2Cloned
+    ];
+
+    let schema1: Schema1Cloned = container.get();
+    assert_eq!(schema1.a.service.data, 0);
+    assert_eq!(schema1.a.service.data2, 1);
+
+    let schema2: Schema2Cloned = container.get();
+    assert_eq!(schema2.a.service.data, 0);
+    assert_eq!(schema2.a.service.data2, 1);
 }

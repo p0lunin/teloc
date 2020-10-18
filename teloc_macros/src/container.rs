@@ -47,7 +47,7 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
             let mut wrapper = teloc::ContainerWrapper(container);
             let cref = &mut wrapper;
             #(
-                cref.0.#field4 = Some(#ty3::init(cref));
+                cref.0.#field4 = Some(<_>::init(cref));
             )*
             wrapper
         }
