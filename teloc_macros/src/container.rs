@@ -1,8 +1,8 @@
+use crate::common::{expect_1_path_ident, get_ty_path};
 use proc_macro2::{Ident, TokenStream};
-use syn::{Token, Type};
-use syn::parse::{Parse, ParseBuffer};
-use crate::common::{get_ty_path, expect_1_path_ident};
 use quote::quote;
+use syn::parse::{Parse, ParseBuffer};
+use syn::{Token, Type};
 
 pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
     let field = get_field_idents(input.types.as_slice());
@@ -55,23 +55,21 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
 }
 
 fn get_field_idents<'a>(types: &'a [Type]) -> impl Iterator<Item = Ident> + 'a {
-    types
-        .iter()
-        .map(|t| {
-            let id = expect_1_path_ident(get_ty_path(t).unwrap(), "").unwrap();
-            id.clone()
-        })
+    types.iter().map(|t| {
+        let id = expect_1_path_ident(get_ty_path(t).unwrap(), "").unwrap();
+        id.clone()
+    })
 }
 
 pub struct ContainerInput {
-    types: Vec<Type>
+    types: Vec<Type>,
 }
 
 impl Parse for ContainerInput {
     fn parse(input: &ParseBuffer) -> Result<Self, syn::Error> {
         let types = input.parse_terminated::<Type, Token![,]>(Type::parse)?;
         Ok(Self {
-            types: types.into_iter().collect()
+            types: types.into_iter().collect(),
         })
     }
 }

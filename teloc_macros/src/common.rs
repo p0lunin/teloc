@@ -1,7 +1,7 @@
-use quote::ToTokens;
-use syn::{Attribute, Type, Path, PathArguments};
-use proc_macro2::{TokenStream, Ident};
+use proc_macro2::{Ident, TokenStream};
 use quote::quote;
+use quote::ToTokens;
+use syn::{Attribute, Path, PathArguments, Type};
 
 pub fn compile_error<T: ToTokens>(data: T) -> proc_macro2::TokenStream {
     quote! {
@@ -19,7 +19,7 @@ pub fn to_turbofish(path: &Path) -> TokenStream {
             PathArguments::AngleBracketed(args) => {
                 res.extend(quote! { ::#args });
             }
-            _ => unimplemented!()
+            _ => unimplemented!(),
         }
     }
 
@@ -36,7 +36,10 @@ pub fn get_1_teloc_attr(attrs: &[Attribute]) -> Result<Option<&Attribute>, Token
     match teloc_attrs.as_slice() {
         [] => Ok(None),
         [x] => Ok(Some(x)),
-        _ => Err(compile_error(format!("Expected 0 or 1 `clone` or `init` attribute, found {}", teloc_attrs.len())))
+        _ => Err(compile_error(format!(
+            "Expected 0 or 1 `clone` or `init` attribute, found {}",
+            teloc_attrs.len()
+        ))),
     }
 }
 

@@ -1,18 +1,18 @@
 mod common;
+mod container;
 mod derive_teloc;
 mod generics;
-mod container;
 
 extern crate proc_macro;
 extern crate quote;
 extern crate syn;
 
-use proc_macro::TokenStream;
-use syn::Data;
 use crate::common::compile_error;
 use crate::container::ContainerInput;
-use syn::{parse_macro_input, DeriveInput};
+use proc_macro::TokenStream;
 use std::convert::identity;
+use syn::Data;
+use syn::{parse_macro_input, DeriveInput};
 
 #[proc_macro_derive(Teloc, attributes(init, by))]
 pub fn derive_teloc(tokens: TokenStream) -> TokenStream {
