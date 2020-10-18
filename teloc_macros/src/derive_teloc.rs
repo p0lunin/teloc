@@ -10,8 +10,7 @@ use crate::generics::{get_impl_block_generics, get_struct_block_generics, get_wh
 pub fn derive(ds: &DataStruct, ident: Ident, generics: &Generics) -> Result<TokenStream, TokenStream> {
     let TelocStruct {
         initable,
-        injectable,
-        injectable_cloned: _injectable_cloned
+        injectable
     } = parse_teloc_struct(ds)?;
 
     let impl_block_generics = get_impl_block_generics(&generics);
@@ -29,52 +28,42 @@ pub fn derive(ds: &DataStruct, ident: Ident, generics: &Generics) -> Result<Toke
     });
     let init_field_exprs = initable.iter().map(|f| &f.args);
 
-    let injectable_ident = injectable
+    let injectable_ident_inject = injectable
         .iter()
-        .map(|f| f.field);
+        .map(|f| {
+            let ident = f.field;
+            match f.get_by {
+                GetBy::Own => quote! { #ident : teloc::Get::get(container) },
+                GetBy::Ref => quote! { #ident : teloc::GetRef::get_ref(container) },
+                GetBy::Clone => quote! { #ident : teloc::GetClone::get_clone(container) },
+            }
+        });
     let trait_need = injectable
         .iter()
-        .map(|f| f.field_ty);
+        .map(|f| (f.field_ty, &f.get_by));
 
     let mut needed = quote! {};
-    for (i, tr) in trait_need.enumerate() {
-        needed.extend(quote! { Get<#tr> });
+    for (i, (tr, get_by)) in trait_need.enumerate() {
+        needed.extend(match get_by {
+            GetBy::Own => quote! { teloc::Get<#tr> },
+            GetBy::Ref => quote! { teloc::GetRef<#tr> },
+            GetBy::Clone => quote! { teloc::GetClone<#tr> },
+        });
         if i != injectable.len() - 1 {
             needed.extend(quote! { + });
         }
     }
-    /*
-    let injectable_cloned_ident = injectable_cloned
-        .iter()
-        .map(|f| f.field);
-    let trait_cloned_need = injectable_cloned
-        .iter()
-        .map(|f| f.field_ty);
-
-    for (i, tr) in trait_cloned_need.enumerate() {
-        if i == 0 {
-            needed_traits.extend(quote! { + })
-        }
-        needed_traits.extend(quote! { teloc::GetClone<#tr> });
-        if i != injectable_cloned.len() - 1 {
-            needed_traits.extend(quote! { + });
-        }
-    }*/
-
 
     Ok(quote! {
         impl #impl_block_generics #ident #struct_block_generics #where_clause {
-            pub fn init<T: #needed>(container: &T) -> Self {
+            pub fn init<T: #needed>(container: &mut T) -> Self {
                 Self {
                     #(
                         #init_field : #init_field_ty::init(#init_field_exprs),
                     )*
                     #(
-                        #injectable_ident : Get::get(container),
+                        #injectable_ident_inject,
                     )*
-                    /*#(
-                        #injectable_cloned_ident : GetClone::get_clone(container),
-                    )**/
                 }
             }
         }
@@ -85,13 +74,12 @@ fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
     let fields = get_fields(ds);
     let mut initable = vec![];
     let mut injectable = vec![];
-    let mut injectable_cloned = vec![];
     for field in fields {
         match get_1_teloc_attr(field.attrs.as_slice())? {
             Some(attr) => {
                 match attr.path.get_ident().unwrap().to_string().as_str() {
                     "init" => {
-                        let teloc = attr.parse_args::<TelocAttr>().map_err(|_| compile_error("Error when parsing args"))?;
+                        let teloc = attr.parse_args::<TelocAttr>().map_err(|e| compile_error(e.to_compile_error()))?;
                         let field_ty = &field.ty;
                         initable.push(InitableField {
                             args: teloc.exprs,
@@ -99,10 +87,12 @@ fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
                             field: &field.ident.as_ref().unwrap() // TODO: unnamed fields
                         })
                     }
-                    "clone" => {
-                        injectable_cloned.push(InjectableField {
+                    "by" => {
+                        let get_by = attr.parse_args::<GetBy>().map_err(|e| compile_error(e.to_compile_error()))?;
+                        injectable.push(InjectableField {
                             field_ty: &field.ty,
-                            field: &field.ident.as_ref().unwrap() // TODO: unnamed fields
+                            field: &field.ident.as_ref().unwrap(), // TODO: unnamed fields
+                            get_by
                         })
                     }
                     _ => unreachable!()
@@ -111,7 +101,8 @@ fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
             None => {
                 injectable.push(InjectableField {
                     field_ty: &field.ty,
-                    field: &field.ident.as_ref().unwrap() // TODO: unnamed fields
+                    field: &field.ident.as_ref().unwrap(), // TODO: unnamed fields
+                    get_by: GetBy::Own
                 })
             }
         }
@@ -119,7 +110,6 @@ fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
     Ok(TelocStruct {
         initable,
         injectable,
-        injectable_cloned
     })
 }
 
@@ -142,10 +132,27 @@ impl Parse for TelocAttr {
     }
 }
 
+enum GetBy {
+    Own,
+    Ref,
+    Clone,
+}
+
+impl Parse for GetBy {
+    fn parse(input: &ParseBuffer) -> Result<Self, syn::Error> {
+        let id: Ident = input.parse()?;
+        match id.to_string().as_str() {
+            "own" => Ok(GetBy::Own),
+            "reff" => Ok(GetBy::Ref),
+            "clone" => Ok(GetBy::Clone),
+            _ => Err(syn::Error::new(id.span(), format!("Expected one of `own`, `ref`, `clone`, found {}", id.to_string()))),
+        }
+    }
+}
+
 struct TelocStruct<'a> {
     initable: Vec<InitableField<'a>>,
     injectable: Vec<InjectableField<'a>>,
-    injectable_cloned: Vec<InjectableField<'a>>,
 }
 
 struct InitableField<'a> {
@@ -156,4 +163,5 @@ struct InitableField<'a> {
 struct InjectableField<'a> {
     field_ty: &'a Type,
     field: &'a Ident,
+    get_by: GetBy,
 }

@@ -29,7 +29,7 @@ pub fn to_turbofish(path: &Path) -> TokenStream {
 pub fn get_1_teloc_attr(attrs: &[Attribute]) -> Result<Option<&Attribute>, TokenStream> {
     let mut teloc_attrs = vec![];
     attrs.iter().for_each(|attr| {
-        if attr.path.is_ident("clone") || attr.path.is_ident("init") {
+        if attr.path.is_ident("by") || attr.path.is_ident("init") {
             teloc_attrs.push(attr);
         }
     });

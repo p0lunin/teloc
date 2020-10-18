@@ -15,37 +15,39 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
 
     Ok(quote! {
         {
-            use std::cell::Cell;
+            use std::cell::RefCell;
             #[allow(non_snake_case)]
             struct Container {
-                #(#field : Cell<Option<#ty>>),*
+                #(#field : Option<#ty>),*
             }
             impl teloc::Get<()> for Container {
-                fn get(&self) -> () {
+                fn get(&mut self) -> () {
                     ()
                 }
             }
             #(
                 impl teloc::Get<#ty2> for teloc::ContainerWrapper<Container> {
-                    fn get(&self) -> #ty2 {
-                        self.0.#field2.replace(None).unwrap()
+                    fn get(&mut self) -> #ty2 {
+                        let mut res = None;
+                        std::mem::swap(&mut res, &mut self.0.#field2);
+                        res.unwrap()
                     }
                 }
-                /*impl GetClone<#ty2> for Container {
-                    fn get_ref(&self) -> #ty2 {
-                        self.#field2.clone()
+                impl teloc::GetRef<#ty2> for teloc::ContainerWrapper<Container> {
+                    fn get_ref(&self) -> &#ty2 {
+                        self.0.#field2.as_ref().unwrap()
                     }
-                }*/
+                }
             )*
             let container = Container {
                 #(
-                    #field3: Cell::new(None),
+                    #field3: None,
                 )*
             };
-            let wrapper = teloc::ContainerWrapper(container);
-            let cref = &wrapper;
+            let mut wrapper = teloc::ContainerWrapper(container);
+            let cref = &mut wrapper;
             #(
-                wrapper.0.#field4.replace(Some(#ty3::init(cref)));
+                cref.0.#field4 = Some(#ty3::init(cref));
             )*
             wrapper
         }

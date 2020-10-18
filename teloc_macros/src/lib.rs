@@ -14,7 +14,7 @@ use crate::container::ContainerInput;
 use syn::{parse_macro_input, DeriveInput};
 use std::convert::identity;
 
-#[proc_macro_derive(Teloc, attributes(init, clone))]
+#[proc_macro_derive(Teloc, attributes(init, by))]
 pub fn derive_teloc(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
     let s = match input.data {
