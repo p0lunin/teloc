@@ -32,11 +32,7 @@ struct Schema2Cloned {
 
 #[test]
 fn test_cloned() {
-    let mut container = container![
-        Rc<Controller>,
-        Schema1Cloned,
-        Schema2Cloned
-    ];
+    let mut container = container![Rc<Controller>, Schema1Cloned, Schema2Cloned];
 
     let schema1: Schema1Cloned = container.get();
     assert_eq!(schema1.a.service.data, 0);

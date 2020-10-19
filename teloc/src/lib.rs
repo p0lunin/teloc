@@ -1,8 +1,8 @@
 pub use teloc_macros::{container, Teloc};
 
-pub trait Getable<T> { }
+pub trait Getable<T> {}
 
-impl Getable<()> for () { }
+impl Getable<()> for () {}
 
 pub trait Get<T: Getable<U>, U> {
     fn get(&mut self) -> U;
@@ -10,7 +10,10 @@ pub trait Get<T: Getable<U>, U> {
 pub trait GetRef<T: Getable<U>, U> {
     fn get_ref(&self) -> &U;
 }
-pub trait GetClone<T: Getable<U>, U> where U: Clone {
+pub trait GetClone<T: Getable<U>, U>
+where
+    U: Clone,
+{
     fn get_clone(&self) -> U;
 }
 
