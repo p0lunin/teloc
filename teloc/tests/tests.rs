@@ -10,7 +10,9 @@ impl ConstService {
         ConstService { data, data2 }
     }
 }
+
 #[derive(Teloc)]
+#[implem(Rc)]
 struct ControllerA {
     #[init(0, 1)]
     service: ConstService,

@@ -1,4 +1,4 @@
-use crate::common::{expect_1_path_ident, get_ty_path, name_generator};
+use crate::common::name_generator;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::parse::{Parse, ParseBuffer};
@@ -12,29 +12,35 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
     let field4 = get_field_idents(count_fields);
     let ty = input.types.iter();
     let ty2 = input.types.iter();
+    let ty3 = input.types.iter();
 
     Ok(quote! {
         {
+            use teloc::Getable;
+            struct NewType<T>(T);
+            impl<T> Getable<T> for NewType<T> { }
             #[allow(non_snake_case)]
             struct Container {
-                #(#field : Option<#ty>),*
+                #(#field : Option<NewType<#ty>>),*
             }
-            impl teloc::Get<()> for Container {
+            impl teloc::Get<(), ()> for Container {
                 fn get(&mut self) -> () {
                     ()
                 }
             }
             #(
-                impl teloc::Get<#ty2> for teloc::ContainerWrapper<Container> {
+                impl teloc::Get<NewType<#ty2>, #ty2> for teloc::ContainerWrapper<Container> {
                     fn get(&mut self) -> #ty2 {
                         let mut res = None;
                         std::mem::swap(&mut res, &mut self.0.#field2);
-                        res.unwrap()
+                        let NewType(t) = res.unwrap();
+                        t
                     }
                 }
-                impl teloc::GetRef<#ty2> for teloc::ContainerWrapper<Container> {
+                impl teloc::GetRef<NewType<#ty2>, #ty2> for teloc::ContainerWrapper<Container> {
                     fn get_ref(&self) -> &#ty2 {
-                        self.0.#field2.as_ref().unwrap()
+                        let NewType(t) = self.0.#field2.as_ref().unwrap();
+                        t
                     }
                 }
             )*
@@ -46,7 +52,7 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
             let mut wrapper = teloc::ContainerWrapper(container);
             let cref = &mut wrapper;
             #(
-                cref.0.#field4 = Some(<_>::init(cref));
+                cref.0.#field4 = Some(NewType(<#ty3>::init(cref)));
             )*
             wrapper
         }

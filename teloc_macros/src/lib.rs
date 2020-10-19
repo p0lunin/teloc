@@ -14,7 +14,7 @@ use std::convert::identity;
 use syn::Data;
 use syn::{parse_macro_input, DeriveInput};
 
-#[proc_macro_derive(Teloc, attributes(init, by))]
+#[proc_macro_derive(Teloc, attributes(implem, init, by))]
 pub fn derive_teloc(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
     let s = match input.data {
@@ -22,7 +22,7 @@ pub fn derive_teloc(tokens: TokenStream) -> TokenStream {
         Data::Enum(_) => return compile_error("Expected struct, found enum").into(),
         Data::Union(_) => return compile_error("Expected struct, found union").into(),
     };
-    let res = derive_teloc::derive(&s, input.ident, &input.generics);
+    let res = derive_teloc::derive(&s, input.ident, &input.generics, &input.attrs);
     res.unwrap_or_else(identity).into()
 }
 

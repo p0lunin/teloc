@@ -1,8 +1,8 @@
 use itertools::Itertools;
-use proc_macro2::{Ident, TokenStream};
+use proc_macro2::TokenStream;
 use quote::quote;
 use quote::ToTokens;
-use syn::{Attribute, Path, PathArguments, Type};
+use syn::{Attribute, Path, PathArguments};
 
 pub fn compile_error<T: ToTokens>(data: T) -> proc_macro2::TokenStream {
     quote! {
@@ -44,34 +44,14 @@ pub fn get_1_teloc_attr(attrs: &[Attribute]) -> Result<Option<&Attribute>, Token
     }
 }
 
-pub fn get_ty_path(ty: &Type) -> Result<&Path, TokenStream> {
-    match ty {
-        Type::Path(path) => Ok(&path.path),
-        _ => {
-            println!("{}", Into::<proc_macro::TokenStream>::into(quote! { #ty }));
-            Err(compile_error("Expected path"))
-        }
-    }
-}
-
-pub fn expect_1_path_ident<'a>(
-    path: &'a Path,
-    err: &'static str,
-) -> Result<&'a Ident, TokenStream> {
-    match path.segments.iter().collect::<Vec<_>>().as_slice() {
-        [x] => Ok(&x.ident),
-        _ => Err(compile_error(err)),
-    }
-}
-
 pub fn name_generator() -> impl Iterator<Item = String> {
-    const alphabet: [char; 26] = [
+    const ALPHABET: [char; 26] = [
         'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
         's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
     ];
     (1..)
         .map(|i| {
-            alphabet
+            ALPHABET
                 .iter()
                 .combinations_with_replacement(i)
                 .map(|arr| arr.iter().join(""))
