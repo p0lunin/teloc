@@ -1,4 +1,3 @@
-use std::rc::Rc;
 pub use teloc_macros::{container, Teloc};
 
 pub trait Get<T> {
