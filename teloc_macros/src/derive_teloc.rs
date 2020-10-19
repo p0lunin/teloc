@@ -41,7 +41,13 @@ pub fn derive(
     let trait_need = injectable.iter().map(|f| (f.field_ty, &f.get_by));
 
     let mut needed = quote! {};
+    let mut type_generics = quote! {};
     for (i, (tr, get_by)) in trait_need.enumerate() {
+        type_generics.extend(match get_by {
+            GetBy::Own => quote! { teloc::Get<#tr> },
+            GetBy::Ref => quote! { teloc::GetRef<#tr> },
+            GetBy::Clone => quote! { teloc::GetClone<#tr> },
+        });
         needed.extend(match get_by {
             GetBy::Own => quote! { teloc::Get<#tr> },
             GetBy::Ref => quote! { teloc::GetRef<#tr> },

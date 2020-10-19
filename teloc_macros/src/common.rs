@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use quote::ToTokens;
@@ -61,4 +62,19 @@ pub fn expect_1_path_ident<'a>(
         [x] => Ok(&x.ident),
         _ => Err(compile_error(err)),
     }
+}
+
+pub fn name_generator() -> impl Iterator<Item = String> {
+    const alphabet: [char; 26] = [
+        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
+        's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+    ];
+    (1..)
+        .map(|i| {
+            alphabet
+                .iter()
+                .combinations_with_replacement(i)
+                .map(|arr| arr.iter().join(""))
+        })
+        .flatten()
 }

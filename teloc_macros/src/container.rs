@@ -1,14 +1,15 @@
-use crate::common::{expect_1_path_ident, get_ty_path};
-use proc_macro2::{Ident, TokenStream};
+use crate::common::{expect_1_path_ident, get_ty_path, name_generator};
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::parse::{Parse, ParseBuffer};
 use syn::{Token, Type};
 
 pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
-    let field = get_field_idents(input.types.as_slice());
-    let field2 = get_field_idents(input.types.as_slice());
-    let field3 = get_field_idents(input.types.as_slice());
-    let field4 = get_field_idents(input.types.as_slice());
+    let count_fields = input.types.len();
+    let field = get_field_idents(count_fields);
+    let field2 = get_field_idents(count_fields);
+    let field3 = get_field_idents(count_fields);
+    let field4 = get_field_idents(count_fields);
     let ty = input.types.iter();
     let ty2 = input.types.iter();
     //let ty3 = input.types.iter();
@@ -53,11 +54,10 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
     })
 }
 
-fn get_field_idents<'a>(types: &'a [Type]) -> impl Iterator<Item = Ident> + 'a {
-    types.iter().map(|t| {
-        let id = expect_1_path_ident(get_ty_path(t).unwrap(), "").unwrap();
-        id.clone()
-    })
+fn get_field_idents(count: usize) -> impl Iterator<Item = Ident> {
+    name_generator()
+        .map(|name| Ident::new(name.as_str(), Span::call_site()))
+        .take(count)
 }
 
 pub struct ContainerInput {
