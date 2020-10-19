@@ -13,46 +13,27 @@ impl ConstService {
 
 #[derive(Teloc)]
 #[implem(Rc)]
-struct ControllerA {
+struct Controller {
     #[init(0, 1)]
     service: ConstService,
-}
-#[derive(Teloc)]
-struct ControllerB {
-    #[init(1, 5)]
-    service: ConstService,
-}
-#[derive(Teloc)]
-struct Schema {
-    a: ControllerA,
-    b: ControllerB,
-}
-#[test]
-fn test() {
-    let mut container = container![ControllerA, ControllerB, Schema];
-    let schema: Schema = container.get();
-    assert_eq!(schema.a.service.data, 0);
-    assert_eq!(schema.a.service.data2, 1);
-    assert_eq!(schema.b.service.data, 1);
-    assert_eq!(schema.b.service.data2, 5);
 }
 
 #[derive(Teloc)]
 struct Schema1Cloned {
     #[by(clone)]
-    a: Rc<ControllerA>,
+    a: Rc<Controller>,
 }
 
 #[derive(Teloc)]
 struct Schema2Cloned {
     #[by(clone)]
-    a: Rc<ControllerA>,
+    a: Rc<Controller>,
 }
 
 #[test]
 fn test_cloned() {
     let mut container = container![
-        Rc<ControllerA>,
+        Rc<Controller>,
         Schema1Cloned,
         Schema2Cloned
     ];
