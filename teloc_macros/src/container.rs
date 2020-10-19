@@ -12,7 +12,6 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
     let field4 = get_field_idents(count_fields);
     let ty = input.types.iter();
     let ty2 = input.types.iter();
-    //let ty3 = input.types.iter();
 
     Ok(quote! {
         {
