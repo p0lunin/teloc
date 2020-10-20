@@ -15,15 +15,21 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
 
     let mut init_dependencies = quote! {};
     for (dependency, field) in input.types.iter().zip(field4) {
-        match &dependency.assign {
-            Some(assign) => {
+        match &dependency.init {
+            DependencyInitType::CertainType => {
+                init_dependencies.extend(quote! {
+                    cref.0.#field = Some(NewType(<#dependency>::init(cref)));
+                });
+            }
+            DependencyInitType::Assign(assign) => {
                 init_dependencies.extend(quote! {
                     cref.0.#field = Some(NewType(#assign));
                 });
             }
-            None => {
+            DependencyInitType::InterfaceType(_) => {
+                let ty = &dependency.ty;
                 init_dependencies.extend(quote! {
-                    cref.0.#field = Some(NewType(<#dependency>::init(cref)));
+                    cref.0.#field = Some(NewType(<#ty>::init(cref)));
                 });
             }
         }
@@ -93,22 +99,34 @@ impl Parse for ContainerInput {
 
 struct TelocExprInput {
     ty: Type,
-    assign: Option<Ident>,
+    init: DependencyInitType,
+}
+
+enum DependencyInitType {
+    CertainType,
+    Assign(Ident),
+    InterfaceType(Type),
 }
 
 impl Parse for TelocExprInput {
     fn parse(input: &ParseBuffer) -> Result<Self, syn::Error> {
         let ty = input.parse::<Type>()?;
-        let assign = match input.parse::<Token![=]>() {
-            Ok(_) => Some(input.parse::<Ident>()?),
-            Err(_) => None,
+        let init = match input.parse::<Token![=]>() {
+            Ok(_) => DependencyInitType::Assign(input.parse::<Ident>()?),
+            Err(_) => match input.parse::<Token![as]>() {
+                Ok(_) => DependencyInitType::InterfaceType(input.parse::<Type>()?),
+                Err(_) => DependencyInitType::CertainType,
+            }
         };
-        Ok(Self { ty, assign })
+        Ok(Self { ty, init })
     }
 }
 
 impl ToTokens for TelocExprInput {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        self.ty.to_tokens(tokens)
+        match &self.init {
+            DependencyInitType::InterfaceType(ty) => ty.to_tokens(tokens),
+            _ => self.ty.to_tokens(tokens)
+        }
     }
 }
