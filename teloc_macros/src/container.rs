@@ -1,6 +1,6 @@
 use crate::common::name_generator;
 use proc_macro2::{Ident, Span, TokenStream};
-use quote::quote;
+use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseBuffer};
 use syn::{Token, Type};
 
@@ -12,7 +12,22 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
     let field4 = get_field_idents(count_fields);
     let ty = input.types.iter();
     let ty2 = input.types.iter();
-    let ty3 = input.types.iter();
+
+    let mut init_dependencies = quote! {};
+    for (dependency, field) in input.types.iter().zip(field4) {
+        match &dependency.assign {
+            Some(assign) => {
+                init_dependencies.extend(quote! {
+                    cref.0.#field = Some(NewType(#assign));
+                });
+            }
+            None => {
+                init_dependencies.extend(quote! {
+                    cref.0.#field = Some(NewType(<#dependency>::init(cref)));
+                });
+            }
+        }
+    }
 
     Ok(quote! {
         {
@@ -51,9 +66,7 @@ pub fn container(input: ContainerInput) -> Result<TokenStream, TokenStream> {
             };
             let mut wrapper = teloc::ContainerWrapper(container);
             let cref = &mut wrapper;
-            #(
-                cref.0.#field4 = Some(NewType(<#ty3>::init(cref)));
-            )*
+            #init_dependencies
             wrapper
         }
     })
@@ -66,14 +79,36 @@ fn get_field_idents(count: usize) -> impl Iterator<Item = Ident> {
 }
 
 pub struct ContainerInput {
-    types: Vec<Type>,
+    types: Vec<TelocExprInput>,
 }
 
 impl Parse for ContainerInput {
     fn parse(input: &ParseBuffer) -> Result<Self, syn::Error> {
-        let types = input.parse_terminated::<Type, Token![,]>(Type::parse)?;
+        let types = input.parse_terminated::<TelocExprInput, Token![,]>(TelocExprInput::parse)?;
         Ok(Self {
             types: types.into_iter().collect(),
         })
+    }
+}
+
+struct TelocExprInput {
+    ty: Type,
+    assign: Option<Ident>,
+}
+
+impl Parse for TelocExprInput {
+    fn parse(input: &ParseBuffer) -> Result<Self, syn::Error> {
+        let ty = input.parse::<Type>()?;
+        let assign = match input.parse::<Token![=]>() {
+            Ok(_) => Some(input.parse::<Ident>()?),
+            Err(_) => None,
+        };
+        Ok(Self { ty, assign })
+    }
+}
+
+impl ToTokens for TelocExprInput {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.ty.to_tokens(tokens)
     }
 }
