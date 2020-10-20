@@ -1,4 +1,4 @@
-use teloc::{container, Get, Teloc, Getable};
+use teloc::{container, Get, Getable, Teloc};
 
 struct NumberServiceOptions(i32);
 
@@ -6,7 +6,11 @@ trait NumberService {
     fn get_num(&self) -> i32;
 }
 trait InitNumberService {
-    fn init<T: Getable<NumberServiceOptions>, C: Get<T, NumberServiceOptions>>(container: &mut C) -> Self where Self:Sized;
+    fn init<T: Getable<NumberServiceOptions>, C: Get<T, NumberServiceOptions>>(
+        container: &mut C,
+    ) -> Self
+    where
+        Self: Sized;
 }
 
 struct ConstService {
@@ -23,7 +27,9 @@ impl NumberService for ConstService {
     }
 }
 impl InitNumberService for Box<ConstService> {
-    fn init<T: Getable<NumberServiceOptions>, C: Get<T, NumberServiceOptions>>(container: &mut C) -> Self {
+    fn init<T: Getable<NumberServiceOptions>, C: Get<T, NumberServiceOptions>>(
+        container: &mut C,
+    ) -> Self {
         let options = container.get();
         Box::new(ConstService::new(options.0))
     }

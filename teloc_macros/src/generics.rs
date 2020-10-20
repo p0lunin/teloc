@@ -41,7 +41,7 @@ fn get_generic_ident(g: &GenericParam) -> TokenStream {
         GenericParam::Type(t) => {
             let id = &t.ident;
             quote!(#id)
-        },
+        }
         GenericParam::Lifetime(l) => quote!(#l),
         GenericParam::Const(_) => unimplemented!(), // TODO: const generics
     }

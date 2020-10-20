@@ -1,5 +1,8 @@
 use crate::common::{compile_error, get_1_teloc_attr, name_generator, to_turbofish};
-use crate::generics::{get_impl_block_generics, get_struct_block_generics, get_where_clause, get_struct_block_generics_without_arrows};
+use crate::generics::{
+    get_impl_block_generics, get_struct_block_generics, get_struct_block_generics_without_arrows,
+    get_where_clause,
+};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::parse::{Parse, ParseBuffer};

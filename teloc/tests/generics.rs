@@ -1,4 +1,4 @@
-use teloc::{container, Get, Teloc, Getable};
+use teloc::{container, Get, Getable, Teloc};
 
 struct NumberServiceOptions(i32);
 
@@ -13,7 +13,9 @@ impl ConstService {
     pub fn new(number: i32) -> Self {
         ConstService { number }
     }
-    fn init<T: Getable<NumberServiceOptions>, C: Get<T, NumberServiceOptions>>(container: &mut C) -> Self {
+    fn init<T: Getable<NumberServiceOptions>, C: Get<T, NumberServiceOptions>>(
+        container: &mut C,
+    ) -> Self {
         let options = container.get();
         ConstService::new(options.0)
     }
@@ -32,7 +34,7 @@ struct Controller<N: NumberService> {
 #[test]
 fn test() {
     let options = NumberServiceOptions(10);
-    let mut container = container! [
+    let mut container = container![
         NumberServiceOptions = options,
         ConstService,
         Controller<ConstService>

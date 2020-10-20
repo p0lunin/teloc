@@ -116,7 +116,7 @@ impl Parse for TelocExprInput {
             Err(_) => match input.parse::<Token![as]>() {
                 Ok(_) => DependencyInitType::InterfaceType(input.parse::<Type>()?),
                 Err(_) => DependencyInitType::CertainType,
-            }
+            },
         };
         Ok(Self { ty, init })
     }
@@ -126,7 +126,7 @@ impl ToTokens for TelocExprInput {
     fn to_tokens(&self, tokens: &mut TokenStream) {
         match &self.init {
             DependencyInitType::InterfaceType(ty) => ty.to_tokens(tokens),
-            _ => self.ty.to_tokens(tokens)
+            _ => self.ty.to_tokens(tokens),
         }
     }
 }
