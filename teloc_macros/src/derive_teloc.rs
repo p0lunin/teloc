@@ -1,5 +1,5 @@
 use crate::common::{compile_error, get_1_teloc_attr, name_generator, to_turbofish};
-use crate::generics::{get_impl_block_generics, get_struct_block_generics, get_where_clause};
+use crate::generics::{get_impl_block_generics, get_struct_block_generics, get_where_clause, get_struct_block_generics_without_arrows};
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use syn::parse::{Parse, ParseBuffer};
@@ -78,12 +78,14 @@ pub fn derive(
         Span::call_site(),
     );
 
+    let generics_for_init_trait = get_struct_block_generics_without_arrows(generics);
+
     Ok(quote! {
-        trait #init {
+        trait #init #struct_block_generics #where_clause {
             fn init<#type_generics2 ContainerT: #needed2>(container: &mut ContainerT) -> Self;
         }
         #(
-            impl#impl_block_generics #init for #ty<#ident #struct_block_generics> #where_clause {
+            impl#impl_block_generics #init for #ty<#ident #generics_for_init_trait> #where_clause {
                 fn init<#type_generics3 ContainerT: #needed3>(container: &mut ContainerT) -> Self {
                     #ty::new(<#ident>::init(container))
                 }

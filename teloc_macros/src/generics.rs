@@ -19,6 +19,13 @@ pub fn get_where_clause(generics: &Generics) -> TokenStream {
     }
 }
 
+pub fn get_struct_block_generics_without_arrows(generics: &Generics) -> TokenStream {
+    let params = generics.params.iter().map(get_generic_ident);
+    quote! {
+        #(#params),*
+    }
+}
+
 pub fn get_struct_block_generics(generics: &Generics) -> TokenStream {
     let params = generics.params.iter().map(get_generic_ident);
     match params.len() {
@@ -31,7 +38,10 @@ pub fn get_struct_block_generics(generics: &Generics) -> TokenStream {
 
 fn get_generic_ident(g: &GenericParam) -> TokenStream {
     match g {
-        GenericParam::Type(t) => quote!(#t),
+        GenericParam::Type(t) => {
+            let id = &t.ident;
+            quote!(#id)
+        },
         GenericParam::Lifetime(l) => quote!(#l),
         GenericParam::Const(_) => unimplemented!(), // TODO: const generics
     }
