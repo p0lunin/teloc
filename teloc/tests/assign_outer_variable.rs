@@ -1,4 +1,4 @@
-use teloc::{container, Get, Teloc};
+use teloc::{Container, Get, Teloc};
 
 struct ConstService {
     number: i32,
@@ -17,7 +17,9 @@ struct Controller {
 #[test]
 fn test() {
     let service = ConstService::new(10);
-    let mut container = container![ConstService = service, Controller];
+    let mut container = Container::new()
+        .add_instance(service)
+        .add::<Controller, _>();
     let controller: Controller = container.get();
     assert_eq!(controller.number_service.number, 10);
 }

@@ -1,4 +1,4 @@
-use teloc::{container, Get, Getable, Teloc};
+use teloc::{Container, Dependency, Get, HList, Teloc};
 
 struct NumberServiceOptions(i32);
 
@@ -13,9 +13,12 @@ impl ConstService {
     pub fn new(number: i32) -> Self {
         ConstService { number }
     }
-    fn init<T: Getable<NumberServiceOptions>, C: Get<T, NumberServiceOptions>>(
-        container: &mut C,
-    ) -> Self {
+}
+impl<D, I1> Dependency<D, HList![I1]> for ConstService
+where
+    Container<D>: Get<NumberServiceOptions, I1>,
+{
+    fn init(container: &mut Container<D>) -> Self {
         let options = container.get();
         ConstService::new(options.0)
     }
@@ -34,11 +37,10 @@ struct Controller<N: NumberService> {
 #[test]
 fn test() {
     let options = NumberServiceOptions(10);
-    let mut container = container![
-        NumberServiceOptions = options,
-        ConstService,
-        Controller<ConstService>
-    ];
+    let mut container = Container::new()
+        .add_instance(options)
+        .add::<ConstService, _>()
+        .add::<Controller<ConstService>, _>();
     let controller: Controller<_> = container.get();
 
     assert_eq!(controller.number_service.get_num(), 10);

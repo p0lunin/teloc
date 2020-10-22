@@ -1,4 +1,4 @@
-use teloc::{container, Get, Teloc};
+use teloc::{Container, Dependency, Get, HList, Teloc};
 
 struct ConstService {
     data: i32,
@@ -25,9 +25,13 @@ struct Schema {
     a: ControllerA,
     b: ControllerB,
 }
+
 #[test]
 fn test() {
-    let mut container = container![ControllerA, ControllerB, Schema];
+    let mut container = Container::new()
+        .add::<ControllerA, _>()
+        .add::<ControllerB, _>()
+        .add::<Schema, _>();
     let schema: Schema = container.get();
     assert_eq!(schema.a.service.data, 0);
     assert_eq!(schema.a.service.data2, 1);

@@ -1,16 +1,9 @@
-use teloc::{container, Get, Getable, Teloc};
+use teloc::{Container, Dependency, Get, HList, Teloc};
 
 struct NumberServiceOptions(i32);
 
 trait NumberService {
     fn get_num(&self) -> i32;
-}
-trait InitNumberService {
-    fn init<T: Getable<NumberServiceOptions>, C: Get<T, NumberServiceOptions>>(
-        container: &mut C,
-    ) -> Self
-    where
-        Self: Sized;
 }
 
 struct ConstService {
@@ -26,12 +19,18 @@ impl NumberService for ConstService {
         self.number
     }
 }
-impl InitNumberService for Box<ConstService> {
-    fn init<T: Getable<NumberServiceOptions>, C: Get<T, NumberServiceOptions>>(
-        container: &mut C,
-    ) -> Self {
+impl<D, I1> Dependency<D, HList![I1]> for ConstService
+where
+    Container<D>: Get<NumberServiceOptions, I1>,
+{
+    fn init(container: &mut Container<D>) -> Self {
         let options = container.get();
-        Box::new(ConstService::new(options.0))
+        ConstService::new(options.0)
+    }
+}
+impl From<Box<ConstService>> for Box<dyn NumberService> {
+    fn from(x: Box<ConstService>) -> Self {
+        x
     }
 }
 
@@ -43,11 +42,10 @@ struct Controller {
 #[test]
 fn test() {
     let options = NumberServiceOptions(10);
-    let mut container = container! [
-        NumberServiceOptions = options,
-        Box<ConstService> as Box<dyn NumberService>,
-        Controller
-    ];
+    let mut container = Container::new()
+        .add_instance(options)
+        .add_interface::<Box<dyn NumberService>, Box<ConstService>, _>()
+        .add::<Controller, _>();
     let controller: Controller = container.get();
 
     assert_eq!(controller.number_service.get_num(), 10);

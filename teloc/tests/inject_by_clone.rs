@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use teloc::{container, Get, Teloc};
+use teloc::{Container, Get, Teloc};
 
 struct ConstService {
     data: i32,
@@ -12,7 +12,6 @@ impl ConstService {
 }
 
 #[derive(Teloc)]
-#[implem(Rc)]
 struct Controller {
     #[init(0, 1)]
     service: ConstService,
@@ -32,7 +31,10 @@ struct Schema2Cloned {
 
 #[test]
 fn test_cloned() {
-    let mut container = container![Rc<Controller>, Schema1Cloned, Schema2Cloned];
+    let mut container = Container::new()
+        .add::<Rc<Controller>, _>()
+        .add::<Schema1Cloned, _>()
+        .add::<Schema2Cloned, _>();
 
     let schema1: Schema1Cloned = container.get();
     assert_eq!(schema1.a.service.data, 0);

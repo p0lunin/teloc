@@ -7,5 +7,5 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-casey = "0.3.3"
+frunk = "0.3.1"
 teloc_macros = { path = "../teloc_macros" }
