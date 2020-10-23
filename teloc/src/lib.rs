@@ -81,7 +81,10 @@ where
         let Container(dependencies) = self;
         let t = dependencies.get_mut();
         let res = std::mem::take(t);
-        res.unwrap()
+        res.expect(
+            "Dependency not found! It's mean that you put dependency in container and \
+            twice get it by ownership usign `Get` trait. You can use `GetClone` or `GetRef` method instead/"
+        )
     }
 }
 

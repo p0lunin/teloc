@@ -1,4 +1,5 @@
-use teloc::{Container, Dependency, Get, HList, Teloc};
+use std::rc::Rc;
+use teloc::{Container, Dependency, Get, Teloc};
 
 struct NumberServiceOptions(i32);
 
@@ -14,7 +15,7 @@ impl ConstService {
         ConstService { number }
     }
 }
-impl<D, I1> Dependency<D, HList![I1]> for ConstService
+impl<D, I1> Dependency<D, (I1,)> for ConstService
 where
     Container<D>: Get<NumberServiceOptions, I1>,
 {
@@ -31,7 +32,7 @@ impl NumberService for ConstService {
 
 #[derive(Teloc)]
 struct Controller<N: NumberService> {
-    number_service: N,
+    number_service: Rc<N>,
 }
 
 #[test]
@@ -39,7 +40,7 @@ fn test() {
     let options = NumberServiceOptions(10);
     let mut container = Container::new()
         .add_instance(options)
-        .add::<ConstService, _>()
+        .add::<Rc<ConstService>, _>()
         .add::<Controller<ConstService>, _>();
     let controller: Controller<_> = container.get();
 
