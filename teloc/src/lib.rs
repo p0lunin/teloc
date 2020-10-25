@@ -46,29 +46,34 @@ where
 }
 
 pub trait ContainerElem<Elem> {
-    fn init() -> Self;
-}
-
-impl<T, U> ContainerElem<U> for (T,)
-where
-    T: ContainerElem<U>,
-{
-    fn init() -> Self {
-        (T::init(),)
-    }
+    type Data;
+    fn init(data: Self::Data) -> Self;
 }
 
 pub struct TransientContainerElem<T>(PhantomData<T>);
 impl<T> ContainerElem<T> for TransientContainerElem<T> {
-    fn init() -> Self {
+    type Data = ();
+
+    fn init(_: ()) -> Self {
         Self(PhantomData)
     }
 }
 
 pub struct SingletonContainerElem<T>(Option<T>);
 impl<T> ContainerElem<T> for SingletonContainerElem<T> {
-    fn init() -> Self {
+    type Data = ();
+
+    fn init(_: ()) -> Self {
         Self(None)
+    }
+}
+
+pub struct InstanceContainerElem<T>(T);
+impl<T> ContainerElem<T> for InstanceContainerElem<T> {
+    type Data = T;
+
+    fn init(instance: T) -> Self {
+        Self(instance)
     }
 }
 
@@ -83,17 +88,20 @@ impl Container {
 }
 
 impl<H: HList> Container<H> {
-    pub fn add<TE, T: ContainerElem<TE>>(self) -> Container<HCons<T, H>> {
+    pub fn add<TE, T: ContainerElem<TE>>(self, data: T::Data) -> Container<HCons<T, H>> {
         let Container { dependencies } = self;
         Container {
-            dependencies: dependencies.prepend(T::init()),
+            dependencies: dependencies.prepend(T::init(data)),
         }
     }
     pub fn add_transient<T>(self) -> Container<HCons<TransientContainerElem<T>, H>> {
-        self.add::<T, TransientContainerElem<T>>()
+        self.add::<T, TransientContainerElem<T>>(())
     }
     pub fn add_singleton<T>(self) -> Container<HCons<SingletonContainerElem<T>, H>> {
-        self.add::<T, SingletonContainerElem<T>>()
+        self.add::<T, SingletonContainerElem<T>>(())
+    }
+    pub fn add_instance<T>(self, data: T) -> Container<HCons<InstanceContainerElem<T>, H>> {
+        self.add::<T, InstanceContainerElem<T>>(data)
     }
 }
 
@@ -131,6 +139,17 @@ where
             }
             Some(dep) => dep.clone(),
         }
+    }
+}
+
+impl<H, T, Index>
+    Get<InstanceContainerElem<T>, T, Index> for Container<H>
+where
+    H: Selector<InstanceContainerElem<T>, Index>,
+    T: Clone,
+{
+    fn get(&mut self) -> T {
+        self.dependencies.get().0.clone()
     }
 }
 
