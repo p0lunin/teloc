@@ -1,106 +1,157 @@
 pub use frunk;
 use frunk::hlist::{HList, Selector};
 use frunk::{HCons, HNil};
+use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::Arc;
 pub use teloc_macros::Teloc;
 
-pub trait Get<T, Index> {
-    fn get(&mut self) -> T;
+pub trait Get<T: ContainerElem<TE>, TE, Index> {
+    fn get(&mut self) -> TE;
 }
-pub trait GetRef<T, Index> {
+/*pub trait GetRef<T> {
     fn get_ref(&self) -> &T;
 }
-pub trait GetClone<T: Clone, Index> {
+pub trait GetClone<T: Clone> {
     fn get_clone(&self) -> T;
+}*/
+
+pub trait Dependency<Deps> {
+    fn init(deps: Deps) -> Self;
 }
 
-pub trait Dependency<Deps, Indices> {
-    fn init(container: &mut Container<Deps>) -> Self;
-}
-
-impl<Deps, Indices, D> Dependency<Deps, Indices> for Rc<D>
+impl<Deps, D> Dependency<Deps> for Rc<D>
 where
-    D: Dependency<Deps, Indices>,
+    D: Dependency<Deps>,
 {
-    fn init(container: &mut Container<Deps>) -> Self {
-        Rc::new(D::init(container))
+    fn init(deps: Deps) -> Self {
+        Rc::new(D::init(deps))
     }
 }
-impl<Deps, Indices, D> Dependency<Deps, Indices> for Box<D>
+impl<Deps, D> Dependency<Deps> for Box<D>
 where
-    D: Dependency<Deps, Indices>,
+    D: Dependency<Deps>,
 {
-    fn init(container: &mut Container<Deps>) -> Self {
-        Box::new(D::init(container))
+    fn init(deps: Deps) -> Self {
+        Box::new(D::init(deps))
     }
 }
-impl<Deps, Indices, D> Dependency<Deps, Indices> for Arc<D>
+impl<Deps, D> Dependency<Deps> for Arc<D>
 where
-    D: Dependency<Deps, Indices>,
+    D: Dependency<Deps>,
 {
-    fn init(container: &mut Container<Deps>) -> Self {
-        Arc::new(D::init(container))
+    fn init(deps: Deps) -> Self {
+        Arc::new(D::init(deps))
     }
 }
 
-pub struct Container<H>(H);
+pub trait ContainerElem<Elem> {
+    fn init() -> Self;
+}
 
-impl Container<HNil> {
+impl<T, U> ContainerElem<U> for (T,)
+where
+    T: ContainerElem<U>,
+{
+    fn init() -> Self {
+        (T::init(),)
+    }
+}
+
+pub struct TransientContainerElem<T>(PhantomData<T>);
+impl<T> ContainerElem<T> for TransientContainerElem<T> {
+    fn init() -> Self {
+        Self(PhantomData)
+    }
+}
+
+pub struct SingletonContainerElem<T>(Option<T>);
+impl<T> ContainerElem<T> for SingletonContainerElem<T> {
+    fn init() -> Self {
+        Self(None)
+    }
+}
+
+pub struct Container<Dependencies = HNil> {
+    dependencies: Dependencies,
+}
+
+impl Container {
     pub fn new() -> Self {
-        Container(HNil)
+        Container { dependencies: HNil }
     }
 }
 
 impl<H: HList> Container<H> {
-    pub fn add<T, Idxs>(self) -> Container<HCons<Option<T>, H>>
-    where
-        T: Dependency<H, Idxs>,
-    {
-        self.add_interface::<T, T, Idxs>()
+    pub fn add<TE, T: ContainerElem<TE>>(self) -> Container<HCons<T, H>> {
+        let Container { dependencies } = self;
+        Container {
+            dependencies: dependencies.prepend(T::init()),
+        }
     }
-    pub fn add_instance<T>(self, instance: T) -> Container<HCons<Option<T>, H>> {
-        let Container(depths) = self;
-        Container(depths.prepend(Some(instance)))
+    pub fn add_transient<T>(self) -> Container<HCons<TransientContainerElem<T>, H>> {
+        self.add::<T, TransientContainerElem<T>>()
     }
-    pub fn add_interface<I, T, Idxs>(mut self) -> Container<HCons<Option<I>, H>>
-    where
-        T: Into<I> + Dependency<H, Idxs>,
-    {
-        let depth = T::init(&mut self);
-        let Container(depths) = self;
-        Container(depths.prepend(Some(depth.into())))
+    pub fn add_singleton<T>(self) -> Container<HCons<SingletonContainerElem<T>, H>> {
+        self.add::<T, SingletonContainerElem<T>>()
     }
 }
 
-impl<T, H, Index> Get<T, Index> for Container<H>
+impl<H, T, Index, Deps, DepsElems, Indexes>
+    Get<TransientContainerElem<T>, T, (Index, Deps, DepsElems, Indexes)> for Container<H>
 where
-    H: Selector<Option<T>, Index>,
+    H: Selector<TransientContainerElem<T>, Index>,
+    T: Dependency<Deps>,
+    Container<H>: GetDependencies<Deps, DepsElems, Indexes>,
 {
     fn get(&mut self) -> T {
-        let Container(dependencies) = self;
-        let t = dependencies.get_mut();
-        let res = std::mem::take(t);
-        res.expect(
-            "Dependency not found! It's mean that you put dependency in container and \
-            twice get it by ownership usign `Get` trait. You can use `GetClone` or `GetRef` method instead/"
-        )
+        let res = T::init(self.get_deps());
+        res
     }
 }
 
-impl<T, H: Selector<Option<T>, Index>, Index> GetRef<T, Index> for Container<H> {
-    fn get_ref(&self) -> &T {
-        self.0.get().as_ref().unwrap()
-    }
-}
-
-impl<T, H, Index> GetClone<T, Index> for Container<H>
+impl<H, T, Index, Deps, DepsElems, Indexes>
+    Get<SingletonContainerElem<T>, T, (Index, Deps, DepsElems, Indexes)> for Container<H>
 where
-    T: Clone,
-    Container<H>: GetRef<T, Index>,
+    H: Selector<SingletonContainerElem<T>, Index>,
+    T: Dependency<Deps> + Clone,
+    Container<H>: GetDependencies<Deps, DepsElems, Indexes>,
 {
-    fn get_clone(&self) -> T {
-        self.get_ref().clone()
+    fn get(&mut self) -> T {
+        let Container { dependencies } = &self;
+
+        match &dependencies.get().0 {
+            None => {
+                let needed = self.get_deps();
+                let dep = T::init(needed);
+                let Container { dependencies } = self;
+                let t = dependencies.get_mut();
+                *t = SingletonContainerElem(Some(dep.clone()));
+                dep
+            }
+            Some(dep) => dep.clone(),
+        }
+    }
+}
+
+pub trait GetDependencies<Dependencies, DepElems, Indexes> {
+    fn get_deps(&mut self) -> Dependencies;
+}
+
+impl<T, TE, TER, TR, H, I, IR> GetDependencies<HCons<TE, TER>, HCons<T, TR>, HCons<I, IR>>
+    for Container<H>
+where
+    TER: HList,
+    T: ContainerElem<TE>,
+    Container<H>: Get<T, TE, I> + GetDependencies<TER, TR, IR>,
+{
+    fn get_deps(&mut self) -> HCons<TE, TER> {
+        GetDependencies::<TER, TR, IR>::get_deps(self).prepend(self.get())
+    }
+}
+impl<H> GetDependencies<HNil, HNil, HNil> for Container<H> {
+    fn get_deps(&mut self) -> HNil {
+        HNil
     }
 }
 
