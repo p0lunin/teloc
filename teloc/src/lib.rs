@@ -142,8 +142,7 @@ where
     }
 }
 
-impl<H, T, Index>
-    Get<InstanceContainerElem<T>, T, Index> for Container<H>
+impl<H, T, Index> Get<InstanceContainerElem<T>, T, Index> for Container<H>
 where
     H: Selector<InstanceContainerElem<T>, Index>,
     T: Clone,

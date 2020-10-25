@@ -13,8 +13,9 @@ pub fn get_impl_block_generics(generics: &Generics) -> TokenStream {
 }
 
 pub fn get_where_clause(generics: &Generics) -> TokenStream {
+    let clause = &generics.where_clause;
     quote! {
-        #generics
+        #clause
     }
 }
 
