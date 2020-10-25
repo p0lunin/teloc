@@ -1,4 +1,4 @@
-use teloc::{Container, Dependency, Get, HList, Teloc};
+use teloc::{Container, Get, Teloc};
 
 struct ConstService {
     data: i32,
@@ -10,36 +10,22 @@ impl ConstService {
     }
 }
 
+#[derive(Teloc)]
 struct ControllerA {
+    #[init(0, 1)]
     service: ConstService,
-}
-impl Dependency<HList![]> for ControllerA {
-    fn init(_: HList![]) -> Self {
-        Self {
-            service: ConstService::init(0, 1),
-        }
-    }
 }
 
+#[derive(Teloc)]
 struct ControllerB {
+    #[init(1, 5)]
     service: ConstService,
 }
-impl Dependency<HList![]> for ControllerB {
-    fn init(_: HList![]) -> Self {
-        Self {
-            service: ConstService::init(1, 5),
-        }
-    }
-}
+
+#[derive(Teloc)]
 struct Schema {
     a: ControllerA,
     b: ControllerB,
-}
-impl Dependency<HList![ControllerA, ControllerB]> for Schema {
-    fn init(deps: HList![ControllerA, ControllerB]) -> Self {
-        let (a, b) = deps.into_tuple2();
-        Self { a, b }
-    }
 }
 
 #[test]

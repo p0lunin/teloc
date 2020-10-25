@@ -7,15 +7,14 @@ pub fn get_impl_block_generics(generics: &Generics) -> TokenStream {
     match params.len() {
         0 => quote!(),
         _ => quote! {
-            #params
+            <#params>
         },
     }
 }
 
 pub fn get_where_clause(generics: &Generics) -> TokenStream {
-    let predicates = generics.where_clause.as_ref().map(|x| &x.predicates);
     quote! {
-        #predicates
+        #generics
     }
 }
 

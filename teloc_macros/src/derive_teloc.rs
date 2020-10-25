@@ -30,17 +30,6 @@ pub fn derive(
     });
     let init_field_exprs = initable.iter().map(|f| &f.args);
 
-    let injectable_ident_inject = injectable.iter().map(|f| {
-        let ident = f.field;
-        let ty = f.field_ty;
-        match f.get_by {
-            GetBy::Own => quote! { #ident : teloc::Get::<#ty, _>::get(container) },
-            GetBy::Ref => quote! { #ident : teloc::GetRef::<#ty, _>::get_ref(container) },
-            GetBy::Clone => {
-                quote! { #ident : teloc::GetClone::<#ty, _>::get_clone(container) }
-            }
-        }
-    });
     let trait_need = injectable.iter().map(|f| (f.field_ty, &f.get_by));
 
     let mut needed = quote! {};
@@ -58,21 +47,39 @@ pub fn derive(
         }
     }
 
-    let index_generics = generate_generics(injectable.len());
-    let index_generics2 = generate_generics(injectable.len());
+    let ty_dep = injectable.iter().map(|f| f.field_ty);
+    let ty_dep2 = injectable.iter().map(|f| f.field_ty);
+
+    let mut destructure = quote! { teloc::frunk::HNil };
+    injectable
+        .iter()
+        .map(|f| f.field)
+        .rev()
+        .for_each(|id| {
+            destructure = quote! {
+                teloc::frunk::HCons {
+                    head: #id,
+                    tail: #destructure
+                }
+            };
+        });
+    let names = injectable
+        .iter()
+        .map(|f| f.field);
 
     Ok(quote! {
-        impl <ContainerT, #(#index_generics,)* #impl_block_generics>
-            teloc::Dependency<ContainerT, teloc::HList![#(#index_generics2),*]>
-        for #ident #struct_block_generics where #where_clause teloc::Container<ContainerT>: #needed
+        impl #impl_block_generics
+            teloc::Dependency<teloc::HList![#(#ty_dep),*]>
+        for #ident #struct_block_generics #where_clause
         {
-            fn init(container: &mut teloc::Container<ContainerT>) -> Self {
+            fn init(deps: teloc::HList![#(#ty_dep2),*]) -> Self {
+                let #destructure = deps;
                 Self {
                     #(
                         #init_field : #init_field_ty::init(#init_field_exprs),
                     )*
                     #(
-                        #injectable_ident_inject,
+                        #names,
                     )*
                 }
             }
@@ -80,10 +87,11 @@ pub fn derive(
     })
 }
 
-fn generate_generics(count: usize) -> impl Iterator<Item = Ident> {
+fn generate_generics(count: usize) -> Vec<Ident> {
     name_generator()
         .map(|name| Ident::new(name.as_str(), Span::call_site()))
         .take(count)
+        .collect()
 }
 
 fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
