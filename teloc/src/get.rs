@@ -27,8 +27,7 @@ mod impls {
         Container<H>: GetDependencies<'a, Deps, DepsElems, Indexes>,
     {
         fn get(&'a self) -> T {
-            let res = T::init(self.get_deps());
-            res
+            T::init(self.get_deps())
         }
     }
 
