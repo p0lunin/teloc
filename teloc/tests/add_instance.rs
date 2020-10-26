@@ -18,7 +18,7 @@ struct Controller {
 #[test]
 fn test() {
     let service = ConstService::new(10);
-    let mut container = Container::new()
+    let container = Container::new()
         .add_instance(service)
         .add_transient::<Controller>();
     let controller: Controller = container.get();

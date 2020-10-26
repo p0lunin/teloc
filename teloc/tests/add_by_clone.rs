@@ -19,22 +19,20 @@ struct Controller {
 
 #[derive(Teloc)]
 struct Schema1Cloned {
-    #[by(clone)]
     a: Rc<Controller>,
 }
 
 #[derive(Teloc)]
 struct Schema2Cloned {
-    #[by(clone)]
     a: Rc<Controller>,
 }
 
 #[test]
 fn test_cloned() {
-    let mut container = Container::new()
-        .add::<Rc<Controller>, _>()
-        .add::<Schema1Cloned, _>()
-        .add::<Schema2Cloned, _>();
+    let container = Container::new()
+        .add_singleton::<Rc<Controller>>()
+        .add_transient::<Schema1Cloned>()
+        .add_transient::<Schema2Cloned>();
 
     let schema1: Schema1Cloned = container.get();
     assert_eq!(schema1.a.service.data, 0);

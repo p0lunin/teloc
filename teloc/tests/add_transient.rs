@@ -30,7 +30,7 @@ struct Schema {
 
 #[test]
 fn test() {
-    let mut container = Container::new()
+    let container = Container::new()
         .add_transient::<ControllerA>()
         .add_transient::<ControllerB>()
         .add_transient::<Schema>();
