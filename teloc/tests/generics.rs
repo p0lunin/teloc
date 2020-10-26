@@ -1,5 +1,4 @@
-use frunk::HCons;
-use teloc::{Container, Dependency, Get, Hlist, Teloc};
+use teloc::{inject, Container, Get, Hlist, Teloc};
 
 struct NumberServiceOptions(i32);
 
@@ -10,9 +9,9 @@ trait NumberService {
 struct ConstService {
     number: i32,
 }
-impl Dependency<Hlist![&NumberServiceOptions]> for ConstService {
-    fn init(data: Hlist![&NumberServiceOptions]) -> Self {
-        let HCons { head: options, .. } = data;
+#[inject]
+impl ConstService {
+    fn init(options: &NumberServiceOptions) -> Self {
         ConstService { number: options.0 }
     }
 }

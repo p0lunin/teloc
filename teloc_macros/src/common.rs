@@ -1,8 +1,8 @@
 use itertools::Itertools;
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use quote::ToTokens;
-use syn::{Attribute, Path, PathArguments};
+use syn::{Attribute, ImplItem, ImplItemMethod, ItemImpl, Path, PathArguments};
 
 pub fn compile_error<T: ToTokens>(data: T) -> proc_macro2::TokenStream {
     quote! {
@@ -42,6 +42,28 @@ pub fn get_1_teloc_attr(attrs: &[Attribute]) -> Result<Option<&Attribute>, Token
             teloc_attrs.len()
         ))),
     }
+}
+
+pub fn get_1_method(item: &ItemImpl) -> Result<&ImplItemMethod, TokenStream> {
+    let methods = item
+        .items
+        .iter()
+        .filter_map(|x| match x {
+            ImplItem::Method(method) => Some(method),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    match methods.as_slice() {
+        [x] => Ok(x),
+        _ => Err(compile_error("Expected one method in impl!")),
+    }
+}
+
+pub fn ident_generator(count: usize) -> Vec<Ident> {
+    name_generator()
+        .take(count)
+        .map(|s| Ident::new(&s, Span::call_site()))
+        .collect()
 }
 
 pub fn name_generator() -> impl Iterator<Item = String> {

@@ -15,5 +15,5 @@ pub use {
     frunk::Hlist,
     get::Get,
     get_dependencies::GetDependencies,
-    teloc_macros::Teloc,
+    teloc_macros::{inject, Teloc},
 };
