@@ -10,8 +10,8 @@ extern crate syn;
 use crate::common::compile_error;
 use proc_macro::TokenStream;
 use std::convert::identity;
+use syn::Data;
 use syn::{parse_macro_input, DeriveInput};
-use syn::{Data, ItemImpl};
 
 #[proc_macro_derive(Teloc, attributes(init, by))]
 pub fn derive_teloc(tokens: TokenStream) -> TokenStream {
@@ -27,7 +27,7 @@ pub fn derive_teloc(tokens: TokenStream) -> TokenStream {
 
 #[proc_macro_attribute]
 pub fn inject(_: TokenStream, input: TokenStream) -> TokenStream {
-    let imp = parse_macro_input!(input as ItemImpl);
+    let imp = parse_macro_input!(input as inject::InjectInput);
     let res = inject::expand(&imp);
     let tokens = res.unwrap_or_else(identity);
     (quote::quote! { #imp #tokens }).into()

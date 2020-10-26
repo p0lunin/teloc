@@ -2,6 +2,7 @@ use itertools::Itertools;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use quote::ToTokens;
+use syn::spanned::Spanned;
 use syn::{Attribute, ImplItem, ImplItemMethod, ItemImpl, Path, PathArguments};
 
 pub fn compile_error<T: ToTokens>(data: T) -> proc_macro2::TokenStream {
@@ -44,18 +45,19 @@ pub fn get_1_teloc_attr(attrs: &[Attribute]) -> Result<Option<&Attribute>, Token
     }
 }
 
-pub fn get_1_method(item: &ItemImpl) -> Result<&ImplItemMethod, TokenStream> {
+pub fn get_1_method(item: ItemImpl) -> Result<ImplItemMethod, syn::Error> {
+    let span = item.span();
     let methods = item
         .items
-        .iter()
+        .into_iter()
         .filter_map(|x| match x {
             ImplItem::Method(method) => Some(method),
             _ => None,
         })
         .collect::<Vec<_>>();
     match methods.as_slice() {
-        [x] => Ok(x),
-        _ => Err(compile_error("Expected one method in impl!")),
+        [_] => Ok(methods.into_iter().next().unwrap()),
+        _ => Err(syn::Error::new(span, "Expected one method in impl!")),
     }
 }
 
