@@ -10,8 +10,8 @@ where
 mod impls {
     use crate::container::Container;
     use crate::container_elem::{
-        ByRefInstanceContainerElem, ByRefSingletonContainerElem, InstanceContainerElem,
-        SingletonContainerElem, TransientContainerElem,
+        ByRefInstanceContainerElem, ByRefSingletonContainerElem, ConvertContainerElem,
+        InstanceContainerElem, SingletonContainerElem, TransientContainerElem,
     };
     use crate::dependency::Dependency;
     use crate::get::Get;
@@ -105,6 +105,26 @@ mod impls {
     {
         fn get(&'a self) -> T {
             self.dependencies().get().get().clone()
+        }
+    }
+
+    impl<'a, H, T, U, Index, Deps, DepsElems, Indexes>
+        Get<
+            'a,
+            ConvertContainerElem<TransientContainerElem<T>, T, U>,
+            U,
+            (Index, Deps, DepsElems, Indexes),
+        > for Container<H>
+    where
+        H: Selector<ConvertContainerElem<TransientContainerElem<T>, T, U>, Index>,
+        T: Into<U> + Dependency<Deps>,
+        U: 'a,
+        Deps: 'a,
+        Container<H>: GetDependencies<'a, Deps, DepsElems, Indexes>,
+    {
+        fn get(&'a self) -> U {
+            let res = T::init(self.get_deps());
+            res.into()
         }
     }
 }

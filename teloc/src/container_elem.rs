@@ -62,3 +62,22 @@ impl<T> ContainerElem<&T> for ByRefInstanceContainerElem<T> {
         Self(PhantomData)
     }
 }
+
+pub struct ConvertContainerElem<Cont, ContT, T>(Cont, PhantomData<ContT>, PhantomData<T>);
+impl<Cont, ContT, T> ContainerElem<T> for ConvertContainerElem<Cont, ContT, T>
+where
+    Cont: ContainerElem<ContT>,
+    ContT: Into<T>,
+{
+    type Data = Cont::Data;
+
+    fn init(data: Self::Data) -> Self {
+        Self(Cont::init(data), PhantomData, PhantomData)
+    }
+}
+impl<Cont, ContT, T> ConvertContainerElem<Cont, ContT, T> {
+    #[inline]
+    pub fn get(&self) -> &Cont {
+        &self.0
+    }
+}

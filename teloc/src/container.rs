@@ -1,5 +1,6 @@
 use crate::container_elem::{
-    ContainerElem, InstanceContainerElem, SingletonContainerElem, TransientContainerElem,
+    ContainerElem, ConvertContainerElem, InstanceContainerElem, SingletonContainerElem,
+    TransientContainerElem,
 };
 use frunk::hlist::HList;
 use frunk::{HCons, HNil};
@@ -29,6 +30,14 @@ impl<H: HList> Container<H> {
     }
     pub fn add_instance<T>(self, data: T) -> Container<HCons<InstanceContainerElem<T>, H>> {
         self.add::<T, InstanceContainerElem<T>>(data)
+    }
+    pub fn add_transient_<U, T>(
+        self,
+    ) -> Container<HCons<ConvertContainerElem<TransientContainerElem<T>, T, U>, H>>
+    where
+        T: Into<U>,
+    {
+        self.add::<U, ConvertContainerElem<TransientContainerElem<T>, T, U>>(())
     }
 }
 impl<H> Container<H> {
