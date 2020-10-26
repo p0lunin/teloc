@@ -51,21 +51,15 @@ pub fn derive(
     let ty_dep2 = injectable.iter().map(|f| f.field_ty);
 
     let mut destructure = quote! { teloc::frunk::HNil };
-    injectable
-        .iter()
-        .map(|f| f.field)
-        .rev()
-        .for_each(|id| {
-            destructure = quote! {
-                teloc::frunk::HCons {
-                    head: #id,
-                    tail: #destructure
-                }
-            };
-        });
-    let names = injectable
-        .iter()
-        .map(|f| f.field);
+    injectable.iter().map(|f| f.field).rev().for_each(|id| {
+        destructure = quote! {
+            teloc::frunk::HCons {
+                head: #id,
+                tail: #destructure
+            }
+        };
+    });
+    let names = injectable.iter().map(|f| f.field);
 
     Ok(quote! {
         impl #impl_block_generics
