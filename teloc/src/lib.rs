@@ -1,20 +1,18 @@
 pub use frunk;
 use frunk::hlist::{HList, Selector};
 use frunk::{HCons, HNil};
+use once_cell::sync::OnceCell;
 use std::marker::PhantomData;
 use std::rc::Rc;
 use std::sync::Arc;
 pub use teloc_macros::Teloc;
 
-pub trait Get<T: ContainerElem<TE>, TE, Index> {
-    fn get(&mut self) -> TE;
+pub trait Get<'a, T: ContainerElem<TE>, TE, Index>
+where
+    TE: 'a,
+{
+    fn get(&'a self) -> TE;
 }
-/*pub trait GetRef<T> {
-    fn get_ref(&self) -> &T;
-}
-pub trait GetClone<T: Clone> {
-    fn get_clone(&self) -> T;
-}*/
 
 pub trait Dependency<Deps> {
     fn init(deps: Deps) -> Self;
@@ -49,6 +47,16 @@ pub trait ContainerElem<Elem> {
     type Data;
     fn init(data: Self::Data) -> Self;
 }
+/*
+impl<Elem, T> ContainerElem<Elem> for OnceCell<T> where T: ContainerElem<Elem> {
+    type Data = T::Data;
+
+    fn init(data: Self::Data) -> Self {
+        let cell = OnceCell::new();
+        cell.set(T::init(data));
+        cell
+    }
+}*/
 
 pub struct TransientContainerElem<T>(PhantomData<T>);
 impl<T> ContainerElem<T> for TransientContainerElem<T> {
@@ -59,12 +67,12 @@ impl<T> ContainerElem<T> for TransientContainerElem<T> {
     }
 }
 
-pub struct SingletonContainerElem<T>(Option<T>);
+pub struct SingletonContainerElem<T>(OnceCell<T>);
 impl<T> ContainerElem<T> for SingletonContainerElem<T> {
     type Data = ();
 
     fn init(_: ()) -> Self {
-        Self(None)
+        Self(OnceCell::new())
     }
 }
 
@@ -74,6 +82,24 @@ impl<T> ContainerElem<T> for InstanceContainerElem<T> {
 
     fn init(instance: T) -> Self {
         Self(instance)
+    }
+}
+
+pub struct ByRefSingletonContainerElem<T>(PhantomData<T>);
+impl<T> ContainerElem<&T> for ByRefSingletonContainerElem<T> {
+    type Data = ();
+
+    fn init(_: Self::Data) -> Self {
+        Self(PhantomData)
+    }
+}
+
+pub struct ByRefInstanceContainerElem<T>(PhantomData<T>);
+impl<T> ContainerElem<&T> for ByRefInstanceContainerElem<T> {
+    type Data = ();
+
+    fn init(_: Self::Data) -> Self {
+        Self(PhantomData)
     }
 }
 
@@ -105,70 +131,116 @@ impl<H: HList> Container<H> {
     }
 }
 
-impl<H, T, Index, Deps, DepsElems, Indexes>
-    Get<TransientContainerElem<T>, T, (Index, Deps, DepsElems, Indexes)> for Container<H>
+impl<'a, H, T, Index, Deps, DepsElems, Indexes>
+    Get<'a, TransientContainerElem<T>, T, (Index, Deps, DepsElems, Indexes)> for Container<H>
 where
     H: Selector<TransientContainerElem<T>, Index>,
-    T: Dependency<Deps>,
-    Container<H>: GetDependencies<Deps, DepsElems, Indexes>,
+    T: Dependency<Deps> + 'a,
+    Deps: 'a,
+    Container<H>: GetDependencies<'a, Deps, DepsElems, Indexes>,
 {
-    fn get(&mut self) -> T {
+    fn get(&'a self) -> T {
         let res = T::init(self.get_deps());
         res
     }
 }
 
-impl<H, T, Index, Deps, DepsElems, Indexes>
-    Get<SingletonContainerElem<T>, T, (Index, Deps, DepsElems, Indexes)> for Container<H>
+impl<'a, H, T, Index, Deps, DepsElems, Indexes>
+    Get<'a, SingletonContainerElem<T>, T, (Index, Deps, DepsElems, Indexes)> for Container<H>
 where
     H: Selector<SingletonContainerElem<T>, Index>,
-    T: Dependency<Deps> + Clone,
-    Container<H>: GetDependencies<Deps, DepsElems, Indexes>,
+    T: Dependency<Deps> + Clone + 'a,
+    Deps: 'a,
+    Container<H>: GetDependencies<'a, Deps, DepsElems, Indexes>,
 {
-    fn get(&mut self) -> T {
+    fn get(&'a self) -> T {
         let Container { dependencies } = &self;
 
-        match &dependencies.get().0 {
+        let elem = dependencies.get();
+        let elem_ref = elem.0.get();
+        match elem_ref {
             None => {
                 let needed = self.get_deps();
                 let dep = T::init(needed);
-                let Container { dependencies } = self;
-                let t = dependencies.get_mut();
-                *t = SingletonContainerElem(Some(dep.clone()));
+                match elem.0.set(dep.clone()) {
+                    Ok(()) => {}
+                    Err(_) => unreachable!("Should never been reached"),
+                }
                 dep
             }
             Some(dep) => dep.clone(),
         }
     }
 }
+impl<'a, H, T, Index, Deps, DepsElems, Indexes>
+    Get<'a, ByRefSingletonContainerElem<T>, &'a T, (Index, Deps, DepsElems, Indexes)>
+    for Container<H>
+where
+    H: Selector<SingletonContainerElem<T>, Index>,
+    T: Dependency<Deps> + Clone + 'a,
+    Deps: 'a,
+    Container<H>: GetDependencies<'a, Deps, DepsElems, Indexes>,
+{
+    fn get(&'a self) -> &'a T {
+        let Container { dependencies } = &self;
 
-impl<H, T, Index> Get<InstanceContainerElem<T>, T, Index> for Container<H>
+        let elem = dependencies.get();
+        let elem_ref = elem.0.get();
+        match elem_ref {
+            None => {
+                let needed = self.get_deps();
+                let dep = T::init(needed);
+                match elem.0.set(dep) {
+                    Ok(()) => {}
+                    Err(_) => unreachable!("Should never been reached"),
+                }
+                elem.0.get().expect("Should never been failed")
+            }
+            Some(dep) => dep,
+        }
+    }
+}
+
+impl<'a, H, T, Index> Get<'a, ByRefInstanceContainerElem<T>, &'a T, Index> for Container<H>
 where
     H: Selector<InstanceContainerElem<T>, Index>,
-    T: Clone,
 {
-    fn get(&mut self) -> T {
+    fn get(&'a self) -> &'a T {
+        let Container { dependencies } = &self;
+        let elem = dependencies.get();
+        &elem.0
+    }
+}
+
+impl<'a, H, T, Index> Get<'a, InstanceContainerElem<T>, T, Index> for Container<H>
+where
+    H: Selector<InstanceContainerElem<T>, Index>,
+    T: Clone + 'a,
+{
+    fn get(&'a self) -> T {
         self.dependencies.get().0.clone()
     }
 }
 
-pub trait GetDependencies<Dependencies, DepElems, Indexes> {
-    fn get_deps(&mut self) -> Dependencies;
+pub trait GetDependencies<'a, Dependencies: 'a, DepElems, Indexes> {
+    fn get_deps(&'a self) -> Dependencies;
 }
 
-impl<T, TE, TER, TR, H, I, IR> GetDependencies<HCons<TE, TER>, HCons<T, TR>, HCons<I, IR>>
+impl<'a, T, TE, TER, TR, H, I, IR> GetDependencies<'a, HCons<TE, TER>, HCons<T, TR>, HCons<I, IR>>
     for Container<H>
 where
     TER: HList,
     T: ContainerElem<TE>,
-    Container<H>: Get<T, TE, I> + GetDependencies<TER, TR, IR>,
+    TE: 'a,
+    TER: 'a,
+    Container<H>: Get<'a, T, TE, I> + GetDependencies<'a, TER, TR, IR>,
 {
-    fn get_deps(&mut self) -> HCons<TE, TER> {
+    fn get_deps(&'a self) -> HCons<TE, TER> {
         GetDependencies::<TER, TR, IR>::get_deps(self).prepend(self.get())
     }
 }
-impl<H> GetDependencies<HNil, HNil, HNil> for Container<H> {
-    fn get_deps(&mut self) -> HNil {
+impl<'a, H> GetDependencies<'a, HNil, HNil, HNil> for Container<H> {
+    fn get_deps(&'a self) -> HNil {
         HNil
     }
 }
