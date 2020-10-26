@@ -1,5 +1,5 @@
 use frunk::HCons;
-use teloc::{Container, Dependency, Get, HList, Teloc};
+use teloc::{Container, Dependency, Get, Hlist, Teloc};
 
 struct NumberServiceOptions(i32);
 
@@ -10,8 +10,8 @@ trait NumberService {
 struct ConstService {
     number: i32,
 }
-impl Dependency<HList![&NumberServiceOptions]> for ConstService {
-    fn init(data: HList![&NumberServiceOptions]) -> Self {
+impl Dependency<Hlist![&NumberServiceOptions]> for ConstService {
+    fn init(data: Hlist![&NumberServiceOptions]) -> Self {
         let HCons { head: options, .. } = data;
         ConstService { number: options.0 }
     }

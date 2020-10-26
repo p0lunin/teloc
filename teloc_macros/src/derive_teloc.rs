@@ -69,10 +69,10 @@ pub fn derive(
 
     Ok(quote! {
         impl #impl_block_generics
-            teloc::Dependency<teloc::HList![#(#ty_dep),*]>
+            teloc::Dependency<teloc::Hlist![#(#ty_dep),*]>
         for #ident #struct_block_generics #where_clause
         {
-            fn init(deps: teloc::HList![#(#ty_dep2),*]) -> Self {
+            fn init(deps: teloc::Hlist![#(#ty_dep2),*]) -> Self {
                 let #destructure = deps;
                 Self {
                     #(
