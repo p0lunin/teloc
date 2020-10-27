@@ -1,9 +1,11 @@
-use teloc::{Get, ServiceProvider, Teloc};
+use teloc::{inject, Get, ServiceProvider, Teloc};
 
 #[derive(Clone)]
 struct ConstService {
     number: i32,
 }
+
+#[inject]
 impl ConstService {
     pub fn new(number: i32) -> Self {
         ConstService { number }
@@ -17,10 +19,12 @@ struct Controller {
 
 #[test]
 fn test() {
-    let service = ConstService::new(10);
     let container = ServiceProvider::new()
-        .add_instance(service)
+        .add_scoped::<i32>()
+        .add_scoped::<bool>()
+        .add_transient::<ConstService>()
         .add_transient::<Controller>();
-    let controller: Controller = container.get();
+    let scope = container.scope(frunk::hlist![true, 10]);
+    let controller: Controller = scope.get();
     assert_eq!(controller.number_service.number, 10);
 }

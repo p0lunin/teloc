@@ -15,6 +15,15 @@ impl<T> ContainerElem<T> for TransientContainerElem<T> {
     }
 }
 
+pub struct ScopedContainerElem<T>(PhantomData<T>);
+impl<T> ContainerElem<T> for ScopedContainerElem<T> {
+    type Data = ();
+
+    fn init(_: ()) -> Self {
+        Self(PhantomData)
+    }
+}
+
 pub struct SingletonContainerElem<T>(OnceCell<T>);
 impl<T> ContainerElem<T> for SingletonContainerElem<T> {
     type Data = ();
@@ -47,6 +56,15 @@ impl<T> InstanceContainerElem<T> {
 
 pub struct ByRefSingletonContainerElem<T>(PhantomData<T>);
 impl<T> ContainerElem<&T> for ByRefSingletonContainerElem<T> {
+    type Data = ();
+
+    fn init(_: Self::Data) -> Self {
+        Self(PhantomData)
+    }
+}
+
+pub struct ByRefScopedContainerElem<T>(PhantomData<T>);
+impl<T> ContainerElem<&T> for ByRefScopedContainerElem<T> {
     type Data = ();
 
     fn init(_: Self::Data) -> Self {

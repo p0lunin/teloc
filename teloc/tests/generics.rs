@@ -1,4 +1,4 @@
-use teloc::{inject, Container, Get, Hlist, Teloc};
+use teloc::{inject, Get, Hlist, ServiceProvider, Teloc};
 
 struct NumberServiceOptions(i32);
 
@@ -29,7 +29,7 @@ struct Controller<N: NumberService> {
 #[test]
 fn test() {
     let options = NumberServiceOptions(10);
-    let container = Container::new()
+    let container = ServiceProvider::new()
         .add_instance(options)
         .add_transient::<ConstService>()
         .add_transient::<Controller<ConstService>>();

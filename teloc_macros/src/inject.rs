@@ -45,7 +45,7 @@ pub fn expand(input: &InjectInput) -> Result<TokenStream, TokenStream> {
 
     Ok(quote! {
         impl #impl_block_generics teloc::Dependency<teloc::Hlist![#(#dependencies),*]> for #struct_ty #struct_block_generics #where_clause {
-            fn init(data: Hlist![#(#dependencies),*]) -> Self {
+            fn init(data: teloc::Hlist![#(#dependencies),*]) -> Self {
                 let #destructure = data;
                 #init
             }

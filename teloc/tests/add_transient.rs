@@ -1,4 +1,4 @@
-use teloc::{Container, Get, Teloc};
+use teloc::{Get, ServiceProvider, Teloc};
 
 struct ConstService {
     data: i32,
@@ -30,7 +30,7 @@ struct Schema {
 
 #[test]
 fn test() {
-    let container = Container::new()
+    let container = ServiceProvider::new()
         .add_transient::<ControllerA>()
         .add_transient::<ControllerB>()
         .add_transient::<Schema>();

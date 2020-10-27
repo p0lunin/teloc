@@ -1,5 +1,5 @@
 use frunk::HCons;
-use teloc::{Container, Dependency, Get, Hlist, Teloc};
+use teloc::{Dependency, Get, Hlist, ServiceProvider, Teloc};
 
 struct NumberServiceOptions(i32);
 
@@ -35,7 +35,7 @@ struct Controller {
 #[test]
 fn test() {
     let options = NumberServiceOptions(10);
-    let container = Container::new()
+    let container = ServiceProvider::new()
         .add_instance(options)
         .add_transient_::<Box<dyn NumberService>, Box<ConstService>>()
         .add_transient::<Controller>();

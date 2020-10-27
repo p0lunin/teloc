@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use teloc::{Container, Get, Teloc};
+use teloc::{Get, ServiceProvider, Teloc};
 
 struct ConstService {
     data: i32,
@@ -29,7 +29,7 @@ struct Schema2Cloned {
 
 #[test]
 fn test_cloned() {
-    let container = Container::new()
+    let container = ServiceProvider::new()
         .add_singleton::<Rc<Controller>>()
         .add_transient::<Schema1Cloned>()
         .add_transient::<Schema2Cloned>();
