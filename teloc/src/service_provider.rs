@@ -1,76 +1,64 @@
-use crate::container_elem::{
-    ContainerElem, ConvertContainerElem, InstanceContainerElem, SingletonContainerElem,
-    TransientContainerElem,
-};
-use crate::Scope;
-use frunk::hlist::HList;
+use crate::container_elem::{ContainerElem, ConvertContainerElem, InstanceContainerElem, SingletonContainerElem, TransientContainerElem, ScopedContainerElem};
+use crate::{Scope, Dependency, GetDependencies};
+use frunk::hlist::{HList, h_cons};
 use frunk::{HCons, HNil};
 use std::marker::PhantomData;
 
-pub struct ServiceProvider<Dependencies, Scoped> {
+pub struct ServiceProvider<Dependencies> {
     dependencies: Dependencies,
-    scoped: PhantomData<Scoped>,
 }
 
-impl ServiceProvider<HNil, HNil> {
+impl ServiceProvider<HNil> {
     pub fn new() -> Self {
         ServiceProvider {
             dependencies: HNil,
-            scoped: PhantomData,
         }
     }
 }
 
-impl Default for ServiceProvider<HNil, HNil> {
+impl Default for ServiceProvider<HNil> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-type ContainerAddConvertElem<T, U, H, S> =
-    ServiceProvider<HCons<ConvertContainerElem<TransientContainerElem<T>, T, U>, H>, S>;
+type ContainerAddConvertElem<T, U, H> =
+    ServiceProvider<HCons<ConvertContainerElem<TransientContainerElem<T>, T, U>, H>>;
 
-impl<H: HList, S> ServiceProvider<H, S> {
-    pub fn _add<TE, T: ContainerElem<TE>>(self, data: T::Data) -> ServiceProvider<HCons<T, H>, S> {
+impl<H: HList> ServiceProvider<H> {
+    pub fn _add<TE, T: ContainerElem<TE>>(self, data: T::Data) -> ServiceProvider<HCons<T, H>> {
         let ServiceProvider { dependencies, .. } = self;
         ServiceProvider {
             dependencies: dependencies.prepend(T::init(data)),
-            scoped: PhantomData,
         }
     }
-    pub fn add_transient<T>(self) -> ServiceProvider<HCons<TransientContainerElem<T>, H>, S> {
+    pub fn add_transient<T>(self) -> ServiceProvider<HCons<TransientContainerElem<T>, H>> {
         self._add::<T, TransientContainerElem<T>>(())
     }
-    pub fn add_scoped<T>(self) -> ServiceProvider<H, HCons<T, S>> {
-        let ServiceProvider { dependencies, .. } = self;
-        ServiceProvider {
-            dependencies,
-            scoped: PhantomData,
-        }
+    pub fn add_scoped<T>(self) -> ServiceProvider<HCons<ScopedContainerElem<T>, H>> {
+        self._add::<T, ScopedContainerElem<T>>(())
     }
-    pub fn add_singleton<T>(self) -> ServiceProvider<HCons<SingletonContainerElem<T>, H>, S> {
+    pub fn add_singleton<T>(self) -> ServiceProvider<HCons<SingletonContainerElem<T>, H>> {
         self._add::<T, SingletonContainerElem<T>>(())
     }
     pub fn add_instance<T>(
         self,
         data: T,
-    ) -> ServiceProvider<HCons<InstanceContainerElem<T>, H>, S> {
+    ) -> ServiceProvider<HCons<InstanceContainerElem<T>, H>> {
         self._add::<T, InstanceContainerElem<T>>(data)
     }
-    pub fn add_transient_<U, T>(self) -> ContainerAddConvertElem<T, U, H, S>
+    pub fn add_transient_<U, T>(self) -> ContainerAddConvertElem<T, U, H>
     where
         T: Into<U>,
     {
         self._add::<U, ConvertContainerElem<TransientContainerElem<T>, T, U>>(())
     }
 }
-impl<H, S> ServiceProvider<H, S> {
-    pub fn scope(&self, data: S) -> Scope<H, S> {
-        Scope::new(self, data)
-    }
+impl<H> ServiceProvider<H> {
+    pub fn scope(&self) -> Scop
 }
 
-impl<H, S> ServiceProvider<H, S> {
+impl<H> ServiceProvider<H> {
     pub fn dependencies(&self) -> &H {
         &self.dependencies
     }

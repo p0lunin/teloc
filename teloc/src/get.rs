@@ -8,15 +8,13 @@ where
 }
 
 mod impls {
-    use crate::container_elem::{
-        ByRefInstanceContainerElem, ByRefSingletonContainerElem, ConvertContainerElem,
-        InstanceContainerElem, SingletonContainerElem, TransientContainerElem,
-    };
-    use crate::dependency::Dependency;
+    use crate::container_elem::{ByRefInstanceContainerElem, ByRefSingletonContainerElem, ConvertContainerElem, InstanceContainerElem, SingletonContainerElem, TransientContainerElem, ScopedContainerElem, ByRefScopedContainerElem};
+    use crate::dependency::{Dependency, DependencyClone};
     use crate::get::Get;
     use crate::service_provider::ServiceProvider;
-    use crate::GetDependencies;
+    use crate::{GetDependencies, Scope};
     use frunk::hlist::Selector;
+    use frunk::HNil;
 
     impl<'a, H, S, T, Index, Deps, DepsElems, Indexes>
         Get<'a, TransientContainerElem<T>, T, (Index, Deps, DepsElems, Indexes)>
@@ -37,7 +35,7 @@ mod impls {
         for ServiceProvider<H, S>
     where
         H: Selector<SingletonContainerElem<T>, Index>,
-        T: Dependency<Deps> + Clone + 'a,
+        T: Dependency<Deps> + DependencyClone + 'a,
         Deps: 'a,
         ServiceProvider<H, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
     {
@@ -65,7 +63,7 @@ mod impls {
         for ServiceProvider<H, S>
     where
         H: Selector<SingletonContainerElem<T>, Index>,
-        T: Dependency<Deps> + Clone + 'a,
+        T: Dependency<Deps> + 'a,
         Deps: 'a,
         ServiceProvider<H, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
     {
@@ -127,6 +125,25 @@ mod impls {
         fn get(&'a self) -> U {
             let res = T::init(self.get_deps());
             res.into()
+        }
+    }
+
+    impl<'a, H, T, Index> Get<'a, ScopedContainerElem<T>, T, Index> for ServiceProvider<H>
+    where
+        T: DependencyClone + 'a,
+        H: Selector<T, Index>,
+    {
+        fn get(&'a self) -> T {
+            self.dependencies().get().clone()
+        }
+    }
+
+    impl<'a, H, T, Index> Get<'a, ByRefScopedContainerElem<T>, &'a T, Index> for ServiceProvider<H>
+    where
+        H: Selector<T, Index>,
+    {
+        fn get(&'a self) -> &'a T {
+            self.dependencies().get()
         }
     }
 }

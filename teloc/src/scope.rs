@@ -2,57 +2,39 @@ use crate::container_elem::{ByRefScopedContainerElem, ContainerElem, ScopedConta
 use crate::{Get, GetDependencies, ServiceProvider};
 use frunk::hlist::{HList, Selector};
 use frunk::{HCons, HNil};
+use crate::dependency::DependencyClone;
 
-pub struct Scope<'a, Dependencies, Scoped> {
-    container: &'a ServiceProvider<Dependencies, Scoped>,
-    scoped: Scoped,
+pub struct Scope<'a, Dependencies> {
+    pub(crate) container: &'a ServiceProvider<Dependencies>,
+    num: usize,
 }
 
-impl<'a, Dependencies, Scoped> Scope<'a, Dependencies, Scoped> {
-    pub fn new(container: &'a ServiceProvider<Dependencies, Scoped>, scoped: Scoped) -> Self {
-        Scope { container, scoped }
+impl<'a, Dependencies> Scope<'a, Dependencies> {
+    pub fn new(container: &'a ServiceProvider<Dependencies>, num: usize) -> Self {
+        Scope { container, num }
     }
 }
-
-impl<'a, T, TE, TER, TR, H, S, I, IR>
-    GetDependencies<'a, HCons<TE, TER>, HCons<T, TR>, HCons<I, IR>> for Scope<'a, H, S>
+/*
+impl<'a, T, TE, TER, TR, H, I, IR>
+    GetDependencies<'a, HCons<TE, TER>, HCons<T, TR>, HCons<I, IR>> for Scope<'a, H>
 where
     TER: HList,
     T: ContainerElem<TE>,
     TE: 'a,
     TER: 'a,
-    Scope<'a, H, S>: Get<'a, T, TE, I> + GetDependencies<'a, TER, TR, IR>,
+    Scope<'a, H>: Get<'a, T, TE, I> + GetDependencies<'a, TER, TR, IR>,
 {
     fn get_deps(&'a self) -> HCons<TE, TER> {
         GetDependencies::<TER, TR, IR>::get_deps(self).prepend(self.get())
     }
 }
 
-impl<'a, H, S> GetDependencies<'a, HNil, HNil, HNil> for Scope<'a, H, S> {
+impl<'a, H> GetDependencies<'a, HNil, HNil, HNil> for Scope<'a, H> {
     fn get_deps(&'a self) -> HNil {
         HNil
     }
-}
-
-impl<'a, H, S, T, Index> Get<'a, ScopedContainerElem<T>, T, Index> for Scope<'a, H, S>
-where
-    T: Clone + 'a,
-    S: Selector<T, Index>,
-{
-    fn get(&'a self) -> T {
-        self.scoped.get().clone()
-    }
-}
-
-impl<'a, H, S, T, Index> Get<'a, ByRefScopedContainerElem<T>, &'a T, Index> for Scope<'a, H, S>
-where
-    S: Selector<T, Index>,
-{
-    fn get(&'a self) -> &'a T {
-        self.scoped.get().clone()
-    }
-}
-
+}*/
+/*
 mod scope_container_impls {
     use crate::container_elem::{
         ByRefInstanceContainerElem, ByRefSingletonContainerElem, ConvertContainerElem,
@@ -63,26 +45,26 @@ mod scope_container_impls {
     use crate::{GetDependencies, Scope};
     use frunk::hlist::Selector;
 
-    impl<'a, H, S, T, Index, Deps, DepsElems, Indexes>
-        Get<'a, TransientContainerElem<T>, T, (Index, Deps, DepsElems, Indexes)> for Scope<'a, H, S>
+    impl<'a, H, SU, S, T, Index, Deps, DepsElems, Indexes>
+        Get<'a, TransientContainerElem<T>, T, (Index, Deps, DepsElems, Indexes)> for Scope<'a, H, SU, S>
     where
         H: Selector<TransientContainerElem<T>, Index>,
         T: Dependency<Deps> + 'a,
         Deps: 'a,
-        Scope<'a, H, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
+        Scope<'a, H, SU, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
     {
         fn get(&'a self) -> T {
             T::init(self.get_deps())
         }
     }
 
-    impl<'a, H, S, T, Index, Deps, DepsElems, Indexes>
-        Get<'a, SingletonContainerElem<T>, T, (Index, Deps, DepsElems, Indexes)> for Scope<'a, H, S>
+    impl<'a, H, SU, S, T, Index, Deps, DepsElems, Indexes>
+        Get<'a, SingletonContainerElem<T>, T, (Index, Deps, DepsElems, Indexes)> for Scope<'a, H, SU, S>
     where
         H: Selector<SingletonContainerElem<T>, Index>,
         T: Dependency<Deps> + Clone + 'a,
         Deps: 'a,
-        Scope<'a, H, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
+        Scope<'a, H, SU, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
     {
         fn get(&'a self) -> T {
             let dependencies = self.container.dependencies();
@@ -103,14 +85,14 @@ mod scope_container_impls {
             }
         }
     }
-    impl<'a, H, S, T, Index, Deps, DepsElems, Indexes>
+    impl<'a, H, SU, S, T, Index, Deps, DepsElems, Indexes>
         Get<'a, ByRefSingletonContainerElem<T>, &'a T, (Index, Deps, DepsElems, Indexes)>
-        for Scope<'a, H, S>
+        for Scope<'a, H, SU, S>
     where
         H: Selector<SingletonContainerElem<T>, Index>,
         T: Dependency<Deps> + Clone + 'a,
         Deps: 'a,
-        Scope<'a, H, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
+        Scope<'a, H, SU, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
     {
         fn get(&'a self) -> &'a T {
             let dependencies = self.container.dependencies();
@@ -132,7 +114,7 @@ mod scope_container_impls {
         }
     }
 
-    impl<'a, H, S, T, Index> Get<'a, ByRefInstanceContainerElem<T>, &'a T, Index> for Scope<'a, H, S>
+    impl<'a, H, SU, S, T, Index> Get<'a, ByRefInstanceContainerElem<T>, &'a T, Index> for Scope<'a, H, SU, S>
     where
         H: Selector<InstanceContainerElem<T>, Index>,
     {
@@ -142,7 +124,7 @@ mod scope_container_impls {
         }
     }
 
-    impl<'a, H, S, T, Index> Get<'a, InstanceContainerElem<T>, T, Index> for Scope<'a, H, S>
+    impl<'a, H, SU, S, T, Index> Get<'a, InstanceContainerElem<T>, T, Index> for Scope<'a, H, SU, S>
     where
         H: Selector<InstanceContainerElem<T>, Index>,
         T: Clone + 'a,
@@ -152,19 +134,19 @@ mod scope_container_impls {
         }
     }
 
-    impl<'a, H, S, T, U, Index, Deps, DepsElems, Indexes>
+    impl<'a, H, SU, S, T, U, Index, Deps, DepsElems, Indexes>
         Get<
             'a,
             ConvertContainerElem<TransientContainerElem<T>, T, U>,
             U,
             (Index, Deps, DepsElems, Indexes),
-        > for Scope<'a, H, S>
+        > for Scope<'a, H, SU, S>
     where
         H: Selector<ConvertContainerElem<TransientContainerElem<T>, T, U>, Index>,
         T: Into<U> + Dependency<Deps>,
         U: 'a,
         Deps: 'a,
-        Scope<'a, H, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
+        Scope<'a, H, SU, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
     {
         fn get(&'a self) -> U {
             let res = T::init(self.get_deps());
@@ -172,3 +154,4 @@ mod scope_container_impls {
         }
     }
 }
+*/

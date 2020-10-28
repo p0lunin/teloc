@@ -1,6 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
+use frunk::{HNil, HCons};
 
 pub trait Dependency<Deps> {
     fn init(deps: Deps) -> Self;
@@ -38,3 +39,11 @@ where
         Arc::new(D::init(deps))
     }
 }
+
+pub trait DependencyClone: Clone { }
+
+impl<D> DependencyClone for Rc<D> { }
+
+impl<D> DependencyClone for Arc<D> { }
+
+impl<D> DependencyClone for &D { }

@@ -4,6 +4,7 @@ mod get;
 mod get_dependencies;
 mod scope;
 mod service_provider;
+mod append_hlist;
 
 pub use {
     container_elem::{
