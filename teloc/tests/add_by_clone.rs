@@ -34,11 +34,11 @@ fn test_cloned() {
         .add_transient::<Schema1Cloned>()
         .add_transient::<Schema2Cloned>();
 
-    let schema1: Schema1Cloned = container.get();
+    let schema1: Schema1Cloned = container.resolve();
     assert_eq!(schema1.a.service.data, 0);
     assert_eq!(schema1.a.service.data2, 1);
 
-    let schema2: Schema2Cloned = container.get();
+    let schema2: Schema2Cloned = container.resolve();
     assert_eq!(schema2.a.service.data, 0);
     assert_eq!(schema2.a.service.data2, 1);
 }

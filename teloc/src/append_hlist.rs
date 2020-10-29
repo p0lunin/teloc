@@ -1,5 +1,5 @@
-use frunk::{HCons, HNil};
 use frunk::hlist::HList;
+use frunk::{HCons, HNil};
 
 pub trait Append<H> {
     type Result;
@@ -9,7 +9,7 @@ pub trait Append<H> {
 impl<T, Rest, H> Append<H> for HCons<T, Rest>
 where
     Rest: HList + Append<H>,
-    Rest::Result: HList
+    Rest::Result: HList,
 {
     type Result = HCons<T, Rest::Result>;
 

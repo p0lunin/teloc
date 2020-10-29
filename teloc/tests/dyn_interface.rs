@@ -1,4 +1,4 @@
-use frunk::HCons;
+/*use frunk::HCons;
 use teloc::{Dependency, Get, Hlist, ServiceProvider, Teloc};
 
 struct NumberServiceOptions(i32);
@@ -39,7 +39,8 @@ fn test() {
         .add_instance(options)
         .add_transient_::<Box<dyn NumberService>, Box<ConstService>>()
         .add_transient::<Controller>();
-    let controller: Controller = container.get();
+    let controller: Controller = container.resolve();
 
     assert_eq!(controller.number_service.get_num(), 10);
 }
+*/

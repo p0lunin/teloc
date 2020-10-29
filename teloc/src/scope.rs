@@ -1,4 +1,9 @@
-use crate::{ServiceProvider};
+use crate::ServiceProvider;
+use once_cell::sync::OnceCell;
+use crate::container_elem::{Init, ContainerElem};
+use frunk::hlist::Selector;
+use frunk::HNil;
+use std::marker::PhantomData;
 
 pub struct Scope<'a, Dependencies> {
     pub(crate) container: &'a ServiceProvider<Dependencies>,
@@ -9,6 +14,37 @@ impl<'a, Dependencies> Scope<'a, Dependencies> {
         Scope { container }
     }
 }
+
+pub struct ScopedContainerElem<T>(OnceCell<T>);
+impl<T> ContainerElem<T> for ScopedContainerElem<T> {}
+impl<T> Init for ScopedContainerElem<T> {
+    type Data = ();
+
+    fn init(_: Self::Data) -> Self {
+        Self(OnceCell::new())
+    }
+}
+/*impl<T> ContainerElem<T> for ScopedContainerElem<T> {
+    type Data = ();
+
+    fn init(_: ()) -> Self {
+        Self(PhantomData)
+    }
+
+    fn resolve(service_provider: _) -> T {
+        unimplemented!()
+    }
+}
+
+pub struct ByRefScopedContainerElem<T>(PhantomData<T>);
+impl<T> ContainerElem<&T> for ByRefScopedContainerElem<T> {
+    type Data = ();
+
+    fn init(_: Self::Data) -> Self {
+        Self(PhantomData)
+    }
+}*/
+
 /*
 impl<'a, H, T, Index> Get<'a, ScopedContainerElem<T>, T, Index> for Scope<'a, H>
 where

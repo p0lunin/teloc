@@ -1,6 +1,6 @@
 use teloc::{Get, ServiceProvider, Teloc};
+use std::rc::Rc;
 
-#[derive(Clone)]
 struct ConstService {
     number: i32,
 }
@@ -12,15 +12,15 @@ impl ConstService {
 
 #[derive(Teloc)]
 struct Controller {
-    number_service: ConstService,
+    number_service: Rc<ConstService>,
 }
 
 #[test]
 fn test() {
-    let service = ConstService::new(10);
+    let service = Rc::new(ConstService::new(10));
     let container = ServiceProvider::new()
         .add_instance(service)
         .add_transient::<Controller>();
-    let controller: Controller = container.get();
+    let controller: Controller = container.resolve();
     assert_eq!(controller.number_service.number, 10);
 }

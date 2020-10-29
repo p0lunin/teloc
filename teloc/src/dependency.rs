@@ -39,10 +39,10 @@ where
     }
 }
 
-pub trait DependencyClone: Clone { }
+pub trait DependencyClone: Clone {}
 
-impl<D> DependencyClone for Rc<D> { }
+impl<D> DependencyClone for Rc<D> {}
 
-impl<D> DependencyClone for Arc<D> { }
+impl<D> DependencyClone for Arc<D> {}
 
-impl<D> DependencyClone for &D { }
+impl<D> DependencyClone for &D {}

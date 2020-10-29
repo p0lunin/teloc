@@ -1,4 +1,4 @@
-use teloc::{inject, Get, Hlist, ServiceProvider, Teloc};
+use teloc::{inject, Get, ServiceProvider, Teloc};
 
 struct NumberServiceOptions(i32);
 
@@ -23,7 +23,7 @@ fn test() {
         .add_instance(options)
         .add_transient::<ConstService>()
         .add_transient::<Controller>();
-    let controller: Controller = container.get();
+    let controller: Controller = container.resolve();
 
     assert_eq!(controller.number_service.number, 10);
 }

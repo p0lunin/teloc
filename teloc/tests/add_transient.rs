@@ -34,7 +34,7 @@ fn test() {
         .add_transient::<ControllerA>()
         .add_transient::<ControllerB>()
         .add_transient::<Schema>();
-    let schema: Schema = container.get();
+    let schema: Schema = container.resolve();
     assert_eq!(schema.a.service.data, 0);
     assert_eq!(schema.a.service.data2, 1);
     assert_eq!(schema.b.service.data, 1);
