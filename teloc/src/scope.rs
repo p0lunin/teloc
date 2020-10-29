@@ -1,19 +1,33 @@
-use crate::container_elem::{ByRefScopedContainerElem, ContainerElem, ScopedContainerElem};
-use crate::{Get, GetDependencies, ServiceProvider};
-use frunk::hlist::{HList, Selector};
-use frunk::{HCons, HNil};
-use crate::dependency::DependencyClone;
+use crate::{ServiceProvider};
 
 pub struct Scope<'a, Dependencies> {
     pub(crate) container: &'a ServiceProvider<Dependencies>,
-    num: usize,
 }
 
 impl<'a, Dependencies> Scope<'a, Dependencies> {
-    pub fn new(container: &'a ServiceProvider<Dependencies>, num: usize) -> Self {
-        Scope { container, num }
+    pub fn new(container: &'a ServiceProvider<Dependencies>) -> Self {
+        Scope { container }
     }
 }
+/*
+impl<'a, H, T, Index> Get<'a, ScopedContainerElem<T>, T, Index> for Scope<'a, H>
+where
+    T: DependencyClone + 'a,
+    H: Selector<T, Index>,
+{
+    fn get(&'a self) -> T {
+        self.get().clone()
+    }
+}
+
+impl<'a, H, T, Index> Get<'a, ByRefScopedContainerElem<T>, &'a T, Index> for ServiceProvider<H>
+where
+    H: Selector<T, Index>,
+{
+    fn get(&'a self) -> &'a T {
+        self.get()
+    }
+}*/
 /*
 impl<'a, T, TE, TER, TR, H, I, IR>
     GetDependencies<'a, HCons<TE, TER>, HCons<T, TR>, HCons<I, IR>> for Scope<'a, H>

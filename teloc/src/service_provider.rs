@@ -1,8 +1,6 @@
 use crate::container_elem::{ContainerElem, ConvertContainerElem, InstanceContainerElem, SingletonContainerElem, TransientContainerElem, ScopedContainerElem};
-use crate::{Scope, Dependency, GetDependencies};
-use frunk::hlist::{HList, h_cons};
+use frunk::hlist::{HList, Selector};
 use frunk::{HCons, HNil};
-use std::marker::PhantomData;
 
 pub struct ServiceProvider<Dependencies> {
     dependencies: Dependencies,
@@ -53,13 +51,26 @@ impl<H: HList> ServiceProvider<H> {
     {
         self._add::<U, ConvertContainerElem<TransientContainerElem<T>, T, U>>(())
     }
-}
+}/*
 impl<H> ServiceProvider<H> {
     pub fn scope(&self) -> Scop
-}
+}*/
 
 impl<H> ServiceProvider<H> {
     pub fn dependencies(&self) -> &H {
         &self.dependencies
+    }
+}
+
+impl<H, T, Index> Selector<T, Index> for ServiceProvider<H>
+where
+    H: Selector<T, Index>
+{
+    fn get(&self) -> &T {
+        self.dependencies().get()
+    }
+
+    fn get_mut(&mut self) -> &mut T {
+        self.dependencies.get_mut()
     }
 }

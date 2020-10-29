@@ -1,7 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
-use frunk::{HNil, HCons};
 
 pub trait Dependency<Deps> {
     fn init(deps: Deps) -> Self;
