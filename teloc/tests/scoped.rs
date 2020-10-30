@@ -1,3 +1,4 @@
+use teloc::scope::ScopeResolve;
 use teloc::{inject, Get, ServiceProvider, Teloc};
 
 #[derive(Clone)]
@@ -20,11 +21,12 @@ struct Controller {
 #[test]
 fn test() {
     let container = ServiceProvider::new()
-        .add_scoped::<i32>()
-        .add_scoped::<bool>()
+        .add_scoped_i::<i32>()
+        .add_scoped_i::<bool>()
         .add_transient::<ConstService>()
         .add_transient::<Controller>();
-    let scope = container.scope(frunk::hlist![true, 10]);
-    let controller: Controller = scope.get();
+    let scope = container.scope(teloc::scopei![true, 10]);
+    scope.resolve_scope();
+    let controller: Controller = scope.resolve();
     assert_eq!(controller.number_service.number, 10);
 }

@@ -1,17 +1,105 @@
-use crate::ServiceProvider;
+use crate::container_elem::{ContainerElem, Init};
+use crate::dependency::DependencyClone;
+use crate::{Dependency, Get, GetDependencies};
+use frunk::hlist::{h_cons, HList, Selector};
+use frunk::{HCons, HNil};
 use once_cell::sync::OnceCell;
-use crate::container_elem::{Init, ContainerElem};
-use frunk::hlist::Selector;
-use frunk::HNil;
 use std::marker::PhantomData;
 
-pub struct Scope<'a, Dependencies> {
-    pub(crate) container: &'a ServiceProvider<Dependencies>,
+pub struct Scope<'a, SP, Scoped, ScopedI> {
+    pub(crate) container: &'a SP,
+    scoped: Scoped,
+    scoped_i: ScopedI,
 }
 
-impl<'a, Dependencies> Scope<'a, Dependencies> {
-    pub fn new(container: &'a ServiceProvider<Dependencies>) -> Self {
-        Scope { container }
+pub trait InitScope<'a, SP, SI>: Sized {
+    fn new(container: &'a SP, scoped_i: SI) -> Self;
+}
+
+impl<'a, SP, Scoped, SI> InitScope<'a, SP, SI> for Scope<'a, SP, Scoped, SI>
+where
+    Scoped: InitScoped,
+{
+    fn new(container: &'a SP, scoped_i: SI) -> Self {
+        let scope = Scope {
+            container,
+            scoped: Scoped::init(),
+            scoped_i,
+        };
+        scope
+    }
+}
+
+pub trait ScopeResolve<'a, Other> {
+    fn resolve_scope(&'a self);
+}
+
+impl<'a, SP, Scoped, SI, Other> ScopeResolve<'a, Other> for Scope<'a, SP, Scoped, SI>
+where
+    Scoped: ResolveDependencies<'a, Self, Other>,
+{
+    fn resolve_scope(&'a self) {
+        self.scoped.resolve_deps(self)
+    }
+}
+
+pub trait ResolveDependencies<'a, Scope, Other> {
+    fn resolve_deps(&self, scope: &'a Scope);
+}
+
+impl<'a, SP, Scoped, SI, T, Rest, Deps, DepsElems, Indexes, OtherRest>
+    ResolveDependencies<'a, Scope<'a, SP, Scoped, SI>, (Deps, DepsElems, Indexes, OtherRest)>
+    for HCons<ScopedContainerElem<T>, Rest>
+where
+    Rest: ResolveDependencies<'a, Scope<'a, SP, Scoped, SI>, OtherRest>,
+    T: Dependency<Deps>,
+    Deps: 'a,
+    Scope<'a, SP, Scoped, SI>: GetDependencies<'a, Deps, DepsElems, Indexes>,
+{
+    fn resolve_deps(&self, scope: &'a Scope<'a, SP, Scoped, SI>) {
+        let HCons { head, tail } = self;
+        tail.resolve_deps(scope);
+        match head.0.set(T::init(scope.get_deps())) {
+            Ok(_) => {}
+            Err(_) => unreachable!(),
+        }
+    }
+}
+
+impl<'a, SP, Scoped, SI> ResolveDependencies<'a, Scope<'a, SP, Scoped, SI>, ()> for HNil {
+    fn resolve_deps(&self, _: &'a Scope<'a, SP, Scoped, SI>) {}
+}
+
+pub trait InitScoped {
+    fn init() -> Self;
+}
+
+impl<T, H> InitScoped for HCons<ScopedContainerElem<T>, H>
+where
+    H: InitScoped + HList,
+{
+    fn init() -> Self {
+        h_cons(ScopedContainerElem::init(()), H::init())
+    }
+}
+
+impl InitScoped for HNil {
+    fn init() -> Self {
+        HNil
+    }
+}
+
+impl<'a, SP, Uninit, Init, T, Index> Selector<T, Index> for Scope<'a, SP, Init, Uninit>
+where
+    SP: Selector<T, Index>,
+{
+    fn get(&self) -> &T {
+        self.container.get()
+    }
+
+    // NEVER USE THIS FUNCTION
+    fn get_mut(&mut self) -> &mut T {
+        unreachable!()
     }
 }
 
@@ -24,184 +112,68 @@ impl<T> Init for ScopedContainerElem<T> {
         Self(OnceCell::new())
     }
 }
-/*impl<T> ContainerElem<T> for ScopedContainerElem<T> {
-    type Data = ();
-
-    fn init(_: ()) -> Self {
-        Self(PhantomData)
+impl<'a, SP, S, SI, T, Index> Get<'a, ScopedContainerElem<T>, T, Scope<'a, SP, S, SI>, Index>
+    for Scope<'a, SP, S, SI>
+where
+    S: Selector<ScopedContainerElem<T>, Index>,
+    T: DependencyClone + 'a,
+{
+    fn resolve(&'a self) -> T {
+        self.scoped
+            .get()
+            .0
+            .get()
+            .expect("Should never been failed due to type check")
+            .clone()
     }
+}
 
-    fn resolve(service_provider: _) -> T {
-        unimplemented!()
+pub struct ScopedInstanceContainerElem<T>(T);
+impl<T> ContainerElem<T> for ScopedInstanceContainerElem<T> {}
+impl<T> Init for ScopedInstanceContainerElem<T> {
+    type Data = T;
+
+    fn init(t: Self::Data) -> Self {
+        Self(t)
+    }
+}
+impl<'a, SP, S, SI, T, Index>
+    Get<'a, ScopedInstanceContainerElem<T>, T, Scope<'a, SP, S, SI>, Index> for Scope<'a, SP, S, SI>
+where
+    SI: Selector<ScopedInstanceContainerElem<T>, Index>,
+    T: DependencyClone + 'a,
+{
+    fn resolve(&'a self) -> T {
+        self.scoped_i.get().0.clone()
     }
 }
 
 pub struct ByRefScopedContainerElem<T>(PhantomData<T>);
-impl<T> ContainerElem<&T> for ByRefScopedContainerElem<T> {
-    type Data = ();
-
-    fn init(_: Self::Data) -> Self {
-        Self(PhantomData)
-    }
-}*/
-
-/*
-impl<'a, H, T, Index> Get<'a, ScopedContainerElem<T>, T, Index> for Scope<'a, H>
+impl<T> ContainerElem<&T> for ByRefScopedContainerElem<T> {}
+impl<'a, SP, S, SI, T, Index>
+    Get<'a, ByRefScopedContainerElem<T>, &'a T, Scope<'a, SP, S, SI>, Index>
+    for Scope<'a, SP, S, SI>
 where
-    T: DependencyClone + 'a,
-    H: Selector<T, Index>,
+    S: Selector<ScopedContainerElem<T>, Index>,
 {
-    fn get(&'a self) -> T {
-        self.get().clone()
+    fn resolve(&'a self) -> &'a T {
+        self.scoped
+            .get()
+            .0
+            .get()
+            .expect("Should never been failed due to type check")
     }
 }
 
-impl<'a, H, T, Index> Get<'a, ByRefScopedContainerElem<T>, &'a T, Index> for ServiceProvider<H>
+pub struct ByRefScopedInstanceContainerElem<T>(PhantomData<T>);
+impl<T> ContainerElem<&T> for ByRefScopedInstanceContainerElem<T> {}
+impl<'a, SP, S, SI, T, Index>
+    Get<'a, ByRefScopedInstanceContainerElem<T>, &'a T, Scope<'a, SP, S, SI>, Index>
+    for Scope<'a, SP, S, SI>
 where
-    H: Selector<T, Index>,
+    SI: Selector<ScopedInstanceContainerElem<T>, Index>,
 {
-    fn get(&'a self) -> &'a T {
-        self.get()
-    }
-}*/
-/*
-impl<'a, T, TE, TER, TR, H, I, IR>
-    GetDependencies<'a, HCons<TE, TER>, HCons<T, TR>, HCons<I, IR>> for Scope<'a, H>
-where
-    TER: HList,
-    T: ContainerElem<TE>,
-    TE: 'a,
-    TER: 'a,
-    Scope<'a, H>: Get<'a, T, TE, I> + GetDependencies<'a, TER, TR, IR>,
-{
-    fn get_deps(&'a self) -> HCons<TE, TER> {
-        GetDependencies::<TER, TR, IR>::get_deps(self).prepend(self.get())
+    fn resolve(&'a self) -> &'a T {
+        &self.scoped_i.get().0
     }
 }
-
-impl<'a, H> GetDependencies<'a, HNil, HNil, HNil> for Scope<'a, H> {
-    fn get_deps(&'a self) -> HNil {
-        HNil
-    }
-}*/
-/*
-mod scope_container_impls {
-    use crate::container_elem::{
-        ByRefInstanceContainerElem, ByRefSingletonContainerElem, ConvertContainerElem,
-        InstanceContainerElem, SingletonContainerElem, TransientContainerElem,
-    };
-    use crate::dependency::Dependency;
-    use crate::get::Get;
-    use crate::{GetDependencies, Scope};
-    use frunk::hlist::Selector;
-
-    impl<'a, H, SU, S, T, Index, Deps, DepsElems, Indexes>
-        Get<'a, TransientContainerElem<T>, T, (Index, Deps, DepsElems, Indexes)> for Scope<'a, H, SU, S>
-    where
-        H: Selector<TransientContainerElem<T>, Index>,
-        T: Dependency<Deps> + 'a,
-        Deps: 'a,
-        Scope<'a, H, SU, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
-    {
-        fn get(&'a self) -> T {
-            T::init(self.get_deps())
-        }
-    }
-
-    impl<'a, H, SU, S, T, Index, Deps, DepsElems, Indexes>
-        Get<'a, SingletonContainerElem<T>, T, (Index, Deps, DepsElems, Indexes)> for Scope<'a, H, SU, S>
-    where
-        H: Selector<SingletonContainerElem<T>, Index>,
-        T: Dependency<Deps> + Clone + 'a,
-        Deps: 'a,
-        Scope<'a, H, SU, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
-    {
-        fn get(&'a self) -> T {
-            let dependencies = self.container.dependencies();
-
-            let elem = dependencies.get();
-            let elem_ref = elem.get().get();
-            match elem_ref {
-                None => {
-                    let needed = self.get_deps();
-                    let dep = T::init(needed);
-                    match elem.get().set(dep.clone()) {
-                        Ok(()) => {}
-                        Err(_) => unreachable!("Should never been reached"),
-                    }
-                    dep
-                }
-                Some(dep) => dep.clone(),
-            }
-        }
-    }
-    impl<'a, H, SU, S, T, Index, Deps, DepsElems, Indexes>
-        Get<'a, ByRefSingletonContainerElem<T>, &'a T, (Index, Deps, DepsElems, Indexes)>
-        for Scope<'a, H, SU, S>
-    where
-        H: Selector<SingletonContainerElem<T>, Index>,
-        T: Dependency<Deps> + Clone + 'a,
-        Deps: 'a,
-        Scope<'a, H, SU, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
-    {
-        fn get(&'a self) -> &'a T {
-            let dependencies = self.container.dependencies();
-
-            let elem = dependencies.get();
-            let elem_ref = elem.get().get();
-            match elem_ref {
-                None => {
-                    let needed = self.get_deps();
-                    let dep = T::init(needed);
-                    match elem.get().set(dep) {
-                        Ok(()) => {}
-                        Err(_) => unreachable!("Should never been reached"),
-                    }
-                    elem.get().get().expect("Should never been failed")
-                }
-                Some(dep) => dep,
-            }
-        }
-    }
-
-    impl<'a, H, SU, S, T, Index> Get<'a, ByRefInstanceContainerElem<T>, &'a T, Index> for Scope<'a, H, SU, S>
-    where
-        H: Selector<InstanceContainerElem<T>, Index>,
-    {
-        fn get(&'a self) -> &'a T {
-            let elem = self.container.dependencies().get();
-            elem.get()
-        }
-    }
-
-    impl<'a, H, SU, S, T, Index> Get<'a, InstanceContainerElem<T>, T, Index> for Scope<'a, H, SU, S>
-    where
-        H: Selector<InstanceContainerElem<T>, Index>,
-        T: Clone + 'a,
-    {
-        fn get(&'a self) -> T {
-            self.container.dependencies().get().get().clone()
-        }
-    }
-
-    impl<'a, H, SU, S, T, U, Index, Deps, DepsElems, Indexes>
-        Get<
-            'a,
-            ConvertContainerElem<TransientContainerElem<T>, T, U>,
-            U,
-            (Index, Deps, DepsElems, Indexes),
-        > for Scope<'a, H, SU, S>
-    where
-        H: Selector<ConvertContainerElem<TransientContainerElem<T>, T, U>, Index>,
-        T: Into<U> + Dependency<Deps>,
-        U: 'a,
-        Deps: 'a,
-        Scope<'a, H, SU, S>: GetDependencies<'a, Deps, DepsElems, Indexes>,
-    {
-        fn get(&'a self) -> U {
-            let res = T::init(self.get_deps());
-            res.into()
-        }
-    }
-}
-*/

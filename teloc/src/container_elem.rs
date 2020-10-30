@@ -1,8 +1,8 @@
-use crate::{GetDependencies, Dependency, Get};
+use crate::dependency::DependencyClone;
+use crate::{Dependency, Get, GetDependencies};
+use frunk::hlist::Selector;
 use once_cell::sync::OnceCell;
 use std::marker::PhantomData;
-use frunk::hlist::Selector;
-use crate::dependency::DependencyClone;
 
 pub trait Init {
     type Data;
@@ -19,12 +19,14 @@ impl<T> Init for TransientContainerElem<T> {
     }
 }
 impl<T> ContainerElem<T> for TransientContainerElem<T> {}
-impl<'a, T, SP, Deps, Index, DepsElems, Indexes> Get<'a, TransientContainerElem<T>, T, SP, (Index, Deps, DepsElems, Indexes)>
-    for SP
+impl<'a, T, SP, Deps, Index, DepsElems, Indexes>
+    Get<'a, TransientContainerElem<T>, T, SP, (Index, Deps, DepsElems, Indexes)> for SP
 where
     Deps: 'a,
-    SP: Selector<TransientContainerElem<T>, Index> + GetDependencies<'a, Deps, DepsElems, Indexes> + 'a,
-    T: Dependency<Deps> + 'a
+    SP: Selector<TransientContainerElem<T>, Index>
+        + GetDependencies<'a, Deps, DepsElems, Indexes>
+        + 'a,
+    T: Dependency<Deps> + 'a,
 {
     fn resolve(&'a self) -> T {
         T::init(self.get_deps())
@@ -41,11 +43,11 @@ impl<T> Init for SingletonContainerElem<T> {
 }
 impl<T> ContainerElem<T> for SingletonContainerElem<T> {}
 impl<'a, T, SP, Index, Deps, DepsElems, Indexes>
-Get<'a, SingletonContainerElem<T>, T, SP, (Index, Deps, DepsElems, Indexes)>
-for SP
+    Get<'a, SingletonContainerElem<T>, T, SP, (Index, Deps, DepsElems, Indexes)> for SP
 where
     SP: Selector<SingletonContainerElem<T>, Index>
-            + GetDependencies<'a, Deps, DepsElems, Indexes> + 'a,
+        + GetDependencies<'a, Deps, DepsElems, Indexes>
+        + 'a,
     T: Dependency<Deps> + DependencyClone + 'a,
     Deps: 'a,
 {
@@ -85,7 +87,7 @@ impl<T> Init for InstanceContainerElem<T> {
 impl<'a, T, SP, Index> Get<'a, InstanceContainerElem<T>, T, SP, Index> for SP
 where
     SP: Selector<InstanceContainerElem<T>, Index>,
-    T: DependencyClone + 'a
+    T: DependencyClone + 'a,
 {
     fn resolve(&'a self) -> T {
         self.get().get().clone()
@@ -108,11 +110,11 @@ impl<T> Init for ByRefSingletonContainerElem<T> {
     }
 }
 impl<'a, T, SP, Index, Deps, DepsElems, Indexes>
-Get<'a, ByRefSingletonContainerElem<T>, &'a T, SP, (Index, Deps, DepsElems, Indexes)>
-for SP
+    Get<'a, ByRefSingletonContainerElem<T>, &'a T, SP, (Index, Deps, DepsElems, Indexes)> for SP
 where
     SP: Selector<SingletonContainerElem<T>, Index>
-            + GetDependencies<'a, Deps, DepsElems, Indexes> + 'a,
+        + GetDependencies<'a, Deps, DepsElems, Indexes>
+        + 'a,
     T: Dependency<Deps> + 'a,
     Deps: 'a,
 {
@@ -156,23 +158,23 @@ pub struct ConvertContainerElem<CE, CET, T>(CE, PhantomData<(CET, T)>);
 impl<CE, CET, T> ContainerElem<&T> for ConvertContainerElem<CE, CET, T> {}
 impl<CE, CET, T> Init for ConvertContainerElem<CE, CET, T>
 where
-    CE: Init
+    CE: Init,
 {
     type Data = CE::Data;
 
     fn init(data: Self::Data) -> Self {
         Self(CE::init(data), PhantomData)
     }
-}/*
-impl<'a, CE, CET, T, SP, Index, Other> ContainerElem<'a, T, SP, Index, Other> for ConvertContainerElem<CE, CET, T>
-where
-    CE: ContainerElem<'a, CET, SP, Index, Other>,
-    CET: Into<T>,
-{
-    fn resolve(service_provider: &'a SP) -> T {
-        CE::resolve(service_provider).into()
-    }
-}*/
+} /*
+  impl<'a, CE, CET, T, SP, Index, Other> ContainerElem<'a, T, SP, Index, Other> for ConvertContainerElem<CE, CET, T>
+  where
+      CE: ContainerElem<'a, CET, SP, Index, Other>,
+      CET: Into<T>,
+  {
+      fn resolve(service_provider: &'a SP) -> T {
+          CE::resolve(service_provider).into()
+      }
+  }*/
 impl<Cont, ContT, T> ConvertContainerElem<Cont, ContT, T> {
     #[inline]
     pub fn get(&self) -> &Cont {

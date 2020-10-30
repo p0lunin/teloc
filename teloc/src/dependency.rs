@@ -46,3 +46,15 @@ impl<D> DependencyClone for Rc<D> {}
 impl<D> DependencyClone for Arc<D> {}
 
 impl<D> DependencyClone for &D {}
+
+macro_rules! impl_dpc {
+    {$($x:ty),*} => {
+        $(
+            impl DependencyClone for $x {}
+        )*
+    }
+}
+
+impl_dpc! {
+    bool, i8, i16, i32, i64, i128, u8, u16, u32, u64, u128
+}
