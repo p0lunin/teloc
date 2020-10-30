@@ -9,13 +9,23 @@ pub use {
     dependency::Dependency,
     frunk,
     frunk::Hlist,
-    get::Get,
+    get::Resolver,
     get_dependencies::GetDependencies,
     scope::Scope,
     service_provider::ServiceProvider,
     teloc_macros::{inject, Teloc},
 };
 
+/// This macro creates an `HList` with data needed to send to the `Scope` when it init.
+/// Usage:
+/// ```
+/// use teloc::*;
+///
+/// let sp = ServiceProvider::new()
+///     .add_scoped_i::<i32>()
+///     .add_scoped_i::<bool>();
+/// let scope = sp.scope(scopei![false, 10]);
+/// ```
 #[macro_export]
 macro_rules! scopei {
     [] => { teloc::frunk::HNil };

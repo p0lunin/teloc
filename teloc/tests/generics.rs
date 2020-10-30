@@ -1,4 +1,4 @@
-use teloc::{inject, Get, ServiceProvider, Teloc};
+use teloc::{inject, Resolver, ServiceProvider, Teloc};
 
 struct NumberServiceOptions(i32);
 

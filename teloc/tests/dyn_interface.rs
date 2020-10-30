@@ -43,4 +43,4 @@ fn test() {
 
     assert_eq!(controller.number_service.get_num(), 10);
 }
-/*
+*/

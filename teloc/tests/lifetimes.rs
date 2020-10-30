@@ -1,5 +1,5 @@
 use teloc::scope::ScopeResolve;
-use teloc::{Dependency, Get, ServiceProvider, Teloc};
+use teloc::{Dependency, Resolver, ServiceProvider, Teloc};
 use uuid::Uuid;
 
 #[derive(Debug, PartialEq)]

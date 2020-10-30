@@ -4,7 +4,7 @@ pub trait GetDependencies<'a, Dependencies: 'a, DepsElems, Indexes> {
 
 mod impls {
     use crate::container_elem::ContainerElem;
-    use crate::get::Get;
+    use crate::get::Resolver;
     use crate::GetDependencies;
     use frunk::hlist::HList;
     use frunk::{HCons, HNil};
@@ -16,7 +16,7 @@ mod impls {
         CE: ContainerElem<T>,
         TRest: 'a,
         T: 'a,
-        SP: Get<'a, CE, T, SP, I> + GetDependencies<'a, TRest, CERest, IR>,
+        SP: Resolver<'a, CE, T, SP, I> + GetDependencies<'a, TRest, CERest, IR>,
     {
         fn get_deps(&'a self) -> HCons<T, TRest> {
             GetDependencies::<TRest, CERest, IR>::get_deps(self).prepend(self.resolve())

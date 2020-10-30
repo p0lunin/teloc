@@ -1,6 +1,6 @@
 use crate::container_elem::{ContainerElem, Init};
 use crate::dependency::DependencyClone;
-use crate::{Dependency, Get, GetDependencies};
+use crate::{Dependency, Resolver, GetDependencies};
 use frunk::hlist::{h_cons, HList, Selector};
 use frunk::{HCons, HNil};
 use once_cell::sync::OnceCell;
@@ -112,7 +112,7 @@ impl<T> Init for ScopedContainerElem<T> {
         Self(OnceCell::new())
     }
 }
-impl<'a, SP, S, SI, T, Index> Get<'a, ScopedContainerElem<T>, T, Scope<'a, SP, S, SI>, Index>
+impl<'a, SP, S, SI, T, Index> Resolver<'a, ScopedContainerElem<T>, T, Scope<'a, SP, S, SI>, Index>
     for Scope<'a, SP, S, SI>
 where
     S: Selector<ScopedContainerElem<T>, Index>,
@@ -138,7 +138,7 @@ impl<T> Init for ScopedInstanceContainerElem<T> {
     }
 }
 impl<'a, SP, S, SI, T, Index>
-    Get<'a, ScopedInstanceContainerElem<T>, T, Scope<'a, SP, S, SI>, Index> for Scope<'a, SP, S, SI>
+    Resolver<'a, ScopedInstanceContainerElem<T>, T, Scope<'a, SP, S, SI>, Index> for Scope<'a, SP, S, SI>
 where
     SI: Selector<ScopedInstanceContainerElem<T>, Index>,
     T: DependencyClone + 'a,
@@ -151,7 +151,7 @@ where
 pub struct ByRefScopedContainerElem<T>(PhantomData<T>);
 impl<T> ContainerElem<&T> for ByRefScopedContainerElem<T> {}
 impl<'a, SP, S, SI, T, Index>
-    Get<'a, ByRefScopedContainerElem<T>, &'a T, Scope<'a, SP, S, SI>, Index>
+    Resolver<'a, ByRefScopedContainerElem<T>, &'a T, Scope<'a, SP, S, SI>, Index>
     for Scope<'a, SP, S, SI>
 where
     S: Selector<ScopedContainerElem<T>, Index>,
@@ -168,7 +168,7 @@ where
 pub struct ByRefScopedInstanceContainerElem<T>(PhantomData<T>);
 impl<T> ContainerElem<&T> for ByRefScopedInstanceContainerElem<T> {}
 impl<'a, SP, S, SI, T, Index>
-    Get<'a, ByRefScopedInstanceContainerElem<T>, &'a T, Scope<'a, SP, S, SI>, Index>
+    Resolver<'a, ByRefScopedInstanceContainerElem<T>, &'a T, Scope<'a, SP, S, SI>, Index>
     for Scope<'a, SP, S, SI>
 where
     SI: Selector<ScopedInstanceContainerElem<T>, Index>,

@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use teloc::{Get, ServiceProvider, Teloc};
+use teloc::{Resolver, ServiceProvider, Teloc};
 
 struct ConstService {
     data: i32,

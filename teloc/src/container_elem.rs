@@ -1,5 +1,5 @@
 use crate::dependency::DependencyClone;
-use crate::{Dependency, Get, GetDependencies};
+use crate::{Dependency, Resolver, GetDependencies};
 use frunk::hlist::Selector;
 use once_cell::sync::OnceCell;
 use std::marker::PhantomData;
@@ -20,7 +20,7 @@ impl<T> Init for TransientContainerElem<T> {
 }
 impl<T> ContainerElem<T> for TransientContainerElem<T> {}
 impl<'a, T, SP, Deps, Index, DepsElems, Indexes>
-    Get<'a, TransientContainerElem<T>, T, SP, (Index, Deps, DepsElems, Indexes)> for SP
+    Resolver<'a, TransientContainerElem<T>, T, SP, (Index, Deps, DepsElems, Indexes)> for SP
 where
     Deps: 'a,
     SP: Selector<TransientContainerElem<T>, Index>
@@ -43,7 +43,7 @@ impl<T> Init for SingletonContainerElem<T> {
 }
 impl<T> ContainerElem<T> for SingletonContainerElem<T> {}
 impl<'a, T, SP, Index, Deps, DepsElems, Indexes>
-    Get<'a, SingletonContainerElem<T>, T, SP, (Index, Deps, DepsElems, Indexes)> for SP
+    Resolver<'a, SingletonContainerElem<T>, T, SP, (Index, Deps, DepsElems, Indexes)> for SP
 where
     SP: Selector<SingletonContainerElem<T>, Index>
         + GetDependencies<'a, Deps, DepsElems, Indexes>
@@ -84,7 +84,7 @@ impl<T> Init for InstanceContainerElem<T> {
         Self(instance)
     }
 }
-impl<'a, T, SP, Index> Get<'a, InstanceContainerElem<T>, T, SP, Index> for SP
+impl<'a, T, SP, Index> Resolver<'a, InstanceContainerElem<T>, T, SP, Index> for SP
 where
     SP: Selector<InstanceContainerElem<T>, Index>,
     T: DependencyClone + 'a,
@@ -110,7 +110,7 @@ impl<T> Init for ByRefSingletonContainerElem<T> {
     }
 }
 impl<'a, T, SP, Index, Deps, DepsElems, Indexes>
-    Get<'a, ByRefSingletonContainerElem<T>, &'a T, SP, (Index, Deps, DepsElems, Indexes)> for SP
+    Resolver<'a, ByRefSingletonContainerElem<T>, &'a T, SP, (Index, Deps, DepsElems, Indexes)> for SP
 where
     SP: Selector<SingletonContainerElem<T>, Index>
         + GetDependencies<'a, Deps, DepsElems, Indexes>
@@ -145,7 +145,7 @@ impl<T> Init for ByRefInstanceContainerElem<T> {
         Self(PhantomData)
     }
 }
-impl<'a, T, SP, Index> Get<'a, ByRefInstanceContainerElem<T>, &'a T, SP, Index> for SP
+impl<'a, T, SP, Index> Resolver<'a, ByRefInstanceContainerElem<T>, &'a T, SP, Index> for SP
 where
     SP: Selector<InstanceContainerElem<T>, Index> + 'a,
 {

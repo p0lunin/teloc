@@ -1,5 +1,5 @@
 use teloc::scope::ScopeResolve;
-use teloc::{inject, Get, ServiceProvider, Teloc};
+use teloc::{inject, Resolver, ServiceProvider, Teloc};
 
 #[derive(Clone)]
 struct ConstService {

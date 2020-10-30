@@ -34,6 +34,21 @@ type ContainerAddConvertElem<T, U, H, S, SI> =
     ServiceProvider<HCons<ConvertContainerElem<TransientContainerElem<T>, T, U>, H>, S, SI>;
 
 impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
+    /// Method used primary for internal actions. In common usage you don't need to use it. It add dependencies to the store. You need
+    /// to put in first generic parameter some `ContainerElem` type.
+    /// Usage:
+    ///
+    /// ```
+    /// use teloc::*;
+    /// use teloc::container_elem::TransientContainerElem;
+    ///
+    /// struct Service {
+    ///     data: i32,
+    /// }
+    ///
+    /// let sp = ServiceProvider::new()
+    ///     ._add::<TransientContainerElem<Service>>(());
+    /// ```
     pub fn _add<'a, T: Init>(self, data: T::Data) -> ServiceProvider<HCons<T, H>, S, SI> {
         let ServiceProvider { dependencies, .. } = self;
         ServiceProvider {
@@ -42,6 +57,30 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
             scoped: PhantomData,
         }
     }
+    /// Add dependency with the `Transient` lifetime. Transient services will be created each time
+    /// when it called. Use this lifetime for lightweight stateless services.
+    ///
+    /// Can be resolved only by ownership.
+    ///
+    /// Usage:
+    /// ```
+    /// use teloc::*;
+    /// use uuid::Uuid;
+    ///
+    /// struct Service { uuid: Uuid }
+    /// #[inject]
+    /// impl Service {
+    ///     fn new() -> Self { Self { uuid: Uuid::new_v4() } }
+    /// }
+    ///
+    /// let sp = ServiceProvider::new()
+    ///     .add_transient::<Service>();
+    ///
+    /// let s1: Service = sp.resolve();
+    /// let s2: Service = sp.resolve();
+    ///
+    /// assert_ne!(s1.uuid, s2.uuid);
+    /// ```
     pub fn add_transient<T>(self) -> ServiceProvider<HCons<TransientContainerElem<T>, H>, S, SI>
     where
         TransientContainerElem<T>: Init<Data = ()>,
