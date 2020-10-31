@@ -1,5 +1,5 @@
 use crate::dependency::DependencyClone;
-use crate::{Dependency, Resolver, GetDependencies};
+use crate::{Dependency, GetDependencies, Resolver};
 use frunk::hlist::Selector;
 use once_cell::sync::OnceCell;
 use std::marker::PhantomData;
@@ -110,7 +110,8 @@ impl<T> Init for ByRefSingletonContainerElem<T> {
     }
 }
 impl<'a, T, SP, Index, Deps, DepsElems, Indexes>
-    Resolver<'a, ByRefSingletonContainerElem<T>, &'a T, SP, (Index, Deps, DepsElems, Indexes)> for SP
+    Resolver<'a, ByRefSingletonContainerElem<T>, &'a T, SP, (Index, Deps, DepsElems, Indexes)>
+    for SP
 where
     SP: Selector<SingletonContainerElem<T>, Index>
         + GetDependencies<'a, Deps, DepsElems, Indexes>

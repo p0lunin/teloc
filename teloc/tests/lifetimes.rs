@@ -1,4 +1,3 @@
-use teloc::scope::ScopeResolve;
 use teloc::{Dependency, Resolver, ServiceProvider, Teloc};
 use uuid::Uuid;
 
@@ -39,7 +38,6 @@ fn test_lifetimes() {
         });
 
     let scope1 = provider.scope(teloc::scopei![]);
-    scope1.resolve_scope();
 
     let t1: Transient = scope1.resolve();
     let t1_1: Transient = scope1.resolve();
@@ -48,7 +46,6 @@ fn test_lifetimes() {
     let i1: &Instance = scope1.resolve();
 
     let scope2 = provider.scope(teloc::scopei![]);
-    scope2.resolve_scope();
 
     let t2: Transient = scope2.resolve();
     let sc2: &Scoped = scope2.resolve();
