@@ -1,12 +1,11 @@
-use teloc::{Dependency, Resolver, ServiceProvider, Teloc};
+use teloc::{Dependency, Resolver, ServiceProvider, Teloc, inject};
 use uuid::Uuid;
 
 #[derive(Debug, PartialEq)]
 struct UUID(Uuid);
-impl Dependency<teloc::Hlist![]> for UUID {
-    fn init(_: teloc::Hlist![]) -> Self {
-        Self(Uuid::new_v4())
-    }
+#[inject]
+fn create_uuid() -> UUID {
+    UUID(Uuid::new_v4())
 }
 
 #[derive(Teloc)]
