@@ -29,8 +29,10 @@ impl Default for ServiceProvider<HNil, HNil, HNil> {
     }
 }
 
-type ContainerAddConvert<T, U, H, S, SI> =
+type ContainerTransientAddConvert<T, U, H, S, SI> =
     ServiceProvider<HCons<ConvertContainer<TransientContainer<T>, T, U>, H>, S, SI>;
+type ContainerSingletonAddConvert<T, U, H, S, SI> =
+    ServiceProvider<HCons<ConvertContainer<SingletonContainer<T>, T, U>, H>, S, SI>;
 
 impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     /// Method used primary for internal actions. In common usage you don't need to use it. It add dependencies to the store. You need
@@ -116,13 +118,21 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     {
         self._add::<InstanceContainer<T>>(data)
     }
-    pub fn add_transient_<U, T>(self) -> ContainerAddConvert<T, U, H, S, SI>
+    pub fn add_transient_c<U, T>(self) -> ContainerTransientAddConvert<T, U, H, S, SI>
     where
         T: Into<U>,
         ConvertContainer<TransientContainer<T>, T, U>: Init<Data = ()>,
         TransientContainer<T>: Init<Data = ()>,
     {
         self._add::<ConvertContainer<TransientContainer<T>, T, U>>(())
+    }
+    pub fn add_singleton_c<U, T>(self) -> ContainerSingletonAddConvert<T, U, H, S, SI>
+    where
+        T: Into<U>,
+        ConvertContainer<SingletonContainer<T>, T, U>: Init<Data = ()>,
+        TransientContainer<T>: Init<Data = ()>,
+    {
+        self._add::<ConvertContainer<SingletonContainer<T>, T, U>>(())
     }
 }
 

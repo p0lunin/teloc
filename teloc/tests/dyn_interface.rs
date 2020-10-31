@@ -36,7 +36,7 @@ fn test() {
     let options = NumberServiceOptions(10);
     let container = ServiceProvider::new()
         .add_instance(options)
-        .add_transient_::<Box<dyn NumberService>, Box<ConstService>>()
+        .add_transient_c::<Box<dyn NumberService>, Box<ConstService>>()
         .add_transient::<Controller>();
     let controller: Controller = container.resolve();
 
