@@ -21,12 +21,11 @@ where
     Scoped: InitScoped,
 {
     fn new(container: &'a SP, scoped_i: SI) -> Self {
-        let scope = Scope {
+        Scope {
             container,
             scoped: Scoped::init(),
             scoped_i,
-        };
-        scope
+        }
     }
 }
 

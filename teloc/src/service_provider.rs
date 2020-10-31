@@ -48,7 +48,7 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     /// let sp = ServiceProvider::new()
     ///     ._add::<TransientContainer<Service>>(());
     /// ```
-    pub fn _add<'a, T: Init>(self, data: T::Data) -> ServiceProvider<HCons<T, H>, S, SI> {
+    pub fn _add<T: Init>(self, data: T::Data) -> ServiceProvider<HCons<T, H>, S, SI> {
         let ServiceProvider { dependencies, .. } = self;
         ServiceProvider {
             dependencies: dependencies.prepend(T::init(data)),
