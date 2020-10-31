@@ -1,5 +1,4 @@
-/*use frunk::HCons;
-use teloc::{Dependency, Get, Hlist, ServiceProvider, Teloc};
+use teloc::{inject, Resolver, ServiceProvider, Teloc};
 
 struct NumberServiceOptions(i32);
 
@@ -15,9 +14,9 @@ impl NumberService for ConstService {
         self.number
     }
 }
-impl Dependency<Hlist![&NumberServiceOptions]> for ConstService {
-    fn init(data: Hlist![&NumberServiceOptions]) -> Self {
-        let HCons { head: options, .. } = data;
+#[inject]
+impl ConstService {
+    fn new(options: &NumberServiceOptions) -> Self {
         ConstService { number: options.0 }
     }
 }
@@ -43,4 +42,3 @@ fn test() {
 
     assert_eq!(controller.number_service.get_num(), 10);
 }
-*/
