@@ -3,7 +3,7 @@ pub trait GetDependencies<'a, Dependencies: 'a, DepsElems, Indexes> {
 }
 
 mod impls {
-    use crate::container_elem::ContainerElem;
+    use crate::container::Container;
     use crate::get::Resolver;
     use crate::GetDependencies;
     use frunk::hlist::HList;
@@ -13,7 +13,7 @@ mod impls {
         GetDependencies<'a, HCons<T, TRest>, HCons<CE, CERest>, HCons<I, IR>> for SP
     where
         TRest: HList,
-        CE: ContainerElem<T>,
+        CE: Container<T>,
         TRest: 'a,
         T: 'a,
         SP: Resolver<'a, CE, T, SP, I> + GetDependencies<'a, TRest, CERest, IR>,

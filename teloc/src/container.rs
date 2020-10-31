@@ -8,24 +8,22 @@ pub trait Init {
     type Data;
     fn init(data: Self::Data) -> Self;
 }
-pub trait ContainerElem<T> {}
+pub trait Container<T> {}
 
-pub struct TransientContainerElem<T>(PhantomData<T>);
-impl<T> Init for TransientContainerElem<T> {
+pub struct TransientContainer<T>(PhantomData<T>);
+impl<T> Init for TransientContainer<T> {
     type Data = ();
 
     fn init(_: ()) -> Self {
         Self(PhantomData)
     }
 }
-impl<T> ContainerElem<T> for TransientContainerElem<T> {}
+impl<T> Container<T> for TransientContainer<T> {}
 impl<'a, T, SP, Deps, Index, DepsElems, Indexes>
-    Resolver<'a, TransientContainerElem<T>, T, SP, (Index, Deps, DepsElems, Indexes)> for SP
+    Resolver<'a, TransientContainer<T>, T, SP, (Index, Deps, DepsElems, Indexes)> for SP
 where
     Deps: 'a,
-    SP: Selector<TransientContainerElem<T>, Index>
-        + GetDependencies<'a, Deps, DepsElems, Indexes>
-        + 'a,
+    SP: Selector<TransientContainer<T>, Index> + GetDependencies<'a, Deps, DepsElems, Indexes> + 'a,
     T: Dependency<Deps> + 'a,
 {
     fn resolve(&'a self) -> T {
@@ -33,21 +31,19 @@ where
     }
 }
 
-pub struct SingletonContainerElem<T>(OnceCell<T>);
-impl<T> Init for SingletonContainerElem<T> {
+pub struct SingletonContainer<T>(OnceCell<T>);
+impl<T> Init for SingletonContainer<T> {
     type Data = ();
 
     fn init(_: ()) -> Self {
         Self(OnceCell::new())
     }
 }
-impl<T> ContainerElem<T> for SingletonContainerElem<T> {}
+impl<T> Container<T> for SingletonContainer<T> {}
 impl<'a, T, SP, Index, Deps, DepsElems, Indexes>
-    Resolver<'a, SingletonContainerElem<T>, T, SP, (Index, Deps, DepsElems, Indexes)> for SP
+    Resolver<'a, SingletonContainer<T>, T, SP, (Index, Deps, DepsElems, Indexes)> for SP
 where
-    SP: Selector<SingletonContainerElem<T>, Index>
-        + GetDependencies<'a, Deps, DepsElems, Indexes>
-        + 'a,
+    SP: Selector<SingletonContainer<T>, Index> + GetDependencies<'a, Deps, DepsElems, Indexes> + 'a,
     T: Dependency<Deps> + DependencyClone + 'a,
     Deps: 'a,
 {
@@ -68,41 +64,41 @@ where
         }
     }
 }
-impl<T> SingletonContainerElem<T> {
+impl<T> SingletonContainer<T> {
     #[inline]
     pub fn get(&self) -> &OnceCell<T> {
         &self.0
     }
 }
 
-pub struct InstanceContainerElem<T>(T);
-impl<T> ContainerElem<T> for InstanceContainerElem<T> {}
-impl<T> Init for InstanceContainerElem<T> {
+pub struct InstanceContainer<T>(T);
+impl<T> Container<T> for InstanceContainer<T> {}
+impl<T> Init for InstanceContainer<T> {
     type Data = T;
 
     fn init(instance: T) -> Self {
         Self(instance)
     }
 }
-impl<'a, T, SP, Index> Resolver<'a, InstanceContainerElem<T>, T, SP, Index> for SP
+impl<'a, T, SP, Index> Resolver<'a, InstanceContainer<T>, T, SP, Index> for SP
 where
-    SP: Selector<InstanceContainerElem<T>, Index>,
+    SP: Selector<InstanceContainer<T>, Index>,
     T: DependencyClone + 'a,
 {
     fn resolve(&'a self) -> T {
         self.get().get().clone()
     }
 }
-impl<T> InstanceContainerElem<T> {
+impl<T> InstanceContainer<T> {
     #[inline]
     pub fn get(&self) -> &T {
         &self.0
     }
 }
 
-pub struct ByRefSingletonContainerElem<T>(PhantomData<T>);
-impl<T> ContainerElem<&T> for ByRefInstanceContainerElem<T> {}
-impl<T> Init for ByRefSingletonContainerElem<T> {
+pub struct ByRefSingletonContainer<T>(PhantomData<T>);
+impl<T> Container<&T> for ByRefInstanceContainer<T> {}
+impl<T> Init for ByRefSingletonContainer<T> {
     type Data = ();
 
     fn init(_: ()) -> Self {
@@ -110,12 +106,9 @@ impl<T> Init for ByRefSingletonContainerElem<T> {
     }
 }
 impl<'a, T, SP, Index, Deps, DepsElems, Indexes>
-    Resolver<'a, ByRefSingletonContainerElem<T>, &'a T, SP, (Index, Deps, DepsElems, Indexes)>
-    for SP
+    Resolver<'a, ByRefSingletonContainer<T>, &'a T, SP, (Index, Deps, DepsElems, Indexes)> for SP
 where
-    SP: Selector<SingletonContainerElem<T>, Index>
-        + GetDependencies<'a, Deps, DepsElems, Indexes>
-        + 'a,
+    SP: Selector<SingletonContainer<T>, Index> + GetDependencies<'a, Deps, DepsElems, Indexes> + 'a,
     T: Dependency<Deps> + 'a,
     Deps: 'a,
 {
@@ -137,27 +130,27 @@ where
     }
 }
 
-pub struct ByRefInstanceContainerElem<T>(PhantomData<T>);
-impl<T> ContainerElem<&T> for ByRefSingletonContainerElem<T> {}
-impl<T> Init for ByRefInstanceContainerElem<T> {
+pub struct ByRefInstanceContainer<T>(PhantomData<T>);
+impl<T> Container<&T> for ByRefSingletonContainer<T> {}
+impl<T> Init for ByRefInstanceContainer<T> {
     type Data = ();
 
     fn init(_: ()) -> Self {
         Self(PhantomData)
     }
 }
-impl<'a, T, SP, Index> Resolver<'a, ByRefInstanceContainerElem<T>, &'a T, SP, Index> for SP
+impl<'a, T, SP, Index> Resolver<'a, ByRefInstanceContainer<T>, &'a T, SP, Index> for SP
 where
-    SP: Selector<InstanceContainerElem<T>, Index> + 'a,
+    SP: Selector<InstanceContainer<T>, Index> + 'a,
 {
     fn resolve(&'a self) -> &'a T {
         self.get().get()
     }
 }
 
-pub struct ConvertContainerElem<CE, CET, T>(CE, PhantomData<(CET, T)>);
-impl<CE, CET, T> ContainerElem<&T> for ConvertContainerElem<CE, CET, T> {}
-impl<CE, CET, T> Init for ConvertContainerElem<CE, CET, T>
+pub struct ConvertContainer<CE, CET, T>(CE, PhantomData<(CET, T)>);
+impl<CE, CET, T> Container<&T> for ConvertContainer<CE, CET, T> {}
+impl<CE, CET, T> Init for ConvertContainer<CE, CET, T>
 where
     CE: Init,
 {
@@ -176,7 +169,7 @@ where
           CE::resolve(service_provider).into()
       }
   }*/
-impl<Cont, ContT, T> ConvertContainerElem<Cont, ContT, T> {
+impl<Cont, ContT, T> ConvertContainer<Cont, ContT, T> {
     #[inline]
     pub fn get(&self) -> &Cont {
         &self.0

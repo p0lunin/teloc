@@ -1,8 +1,7 @@
-use crate::container_elem::{
-    ConvertContainerElem, Init, InstanceContainerElem, SingletonContainerElem,
-    TransientContainerElem,
+use crate::container::{
+    ConvertContainer, Init, InstanceContainer, SingletonContainer, TransientContainer,
 };
-use crate::scope::{InitScope, InitScoped, ScopedContainerElem, ScopedInstanceContainerElem};
+use crate::scope::{InitScope, InitScoped, ScopedContainerElem, ScopedInstanceContainer};
 use crate::Scope;
 use frunk::hlist::{HList, Selector};
 use frunk::{HCons, HNil};
@@ -30,8 +29,8 @@ impl Default for ServiceProvider<HNil, HNil, HNil> {
     }
 }
 
-type ContainerAddConvertElem<T, U, H, S, SI> =
-    ServiceProvider<HCons<ConvertContainerElem<TransientContainerElem<T>, T, U>, H>, S, SI>;
+type ContainerAddConvert<T, U, H, S, SI> =
+    ServiceProvider<HCons<ConvertContainer<TransientContainer<T>, T, U>, H>, S, SI>;
 
 impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     /// Method used primary for internal actions. In common usage you don't need to use it. It add dependencies to the store. You need
@@ -40,14 +39,14 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     ///
     /// ```
     /// use teloc::*;
-    /// use teloc::container_elem::TransientContainerElem;
+    /// use teloc::container::TransientContainer;
     ///
     /// struct Service {
     ///     data: i32,
     /// }
     ///
     /// let sp = ServiceProvider::new()
-    ///     ._add::<TransientContainerElem<Service>>(());
+    ///     ._add::<TransientContainer<Service>>(());
     /// ```
     pub fn _add<'a, T: Init>(self, data: T::Data) -> ServiceProvider<HCons<T, H>, S, SI> {
         let ServiceProvider { dependencies, .. } = self;
@@ -81,11 +80,11 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     ///
     /// assert_ne!(s1.uuid, s2.uuid);
     /// ```
-    pub fn add_transient<T>(self) -> ServiceProvider<HCons<TransientContainerElem<T>, H>, S, SI>
+    pub fn add_transient<T>(self) -> ServiceProvider<HCons<TransientContainer<T>, H>, S, SI>
     where
-        TransientContainerElem<T>: Init<Data = ()>,
+        TransientContainer<T>: Init<Data = ()>,
     {
-        self._add::<TransientContainerElem<T>>(())
+        self._add::<TransientContainer<T>>(())
     }
     #[inline]
     pub fn add_scoped<T>(self) -> ServiceProvider<H, HCons<ScopedContainerElem<T>, S>, SI> {
@@ -97,9 +96,7 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
         }
     }
     #[inline]
-    pub fn add_scoped_i<T>(
-        self,
-    ) -> ServiceProvider<H, S, HCons<ScopedInstanceContainerElem<T>, SI>> {
+    pub fn add_scoped_i<T>(self) -> ServiceProvider<H, S, HCons<ScopedInstanceContainer<T>, SI>> {
         let ServiceProvider { dependencies, .. } = self;
         ServiceProvider {
             dependencies,
@@ -107,28 +104,25 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
             scoped: PhantomData,
         }
     }
-    pub fn add_singleton<T>(self) -> ServiceProvider<HCons<SingletonContainerElem<T>, H>, S, SI>
+    pub fn add_singleton<T>(self) -> ServiceProvider<HCons<SingletonContainer<T>, H>, S, SI>
     where
-        SingletonContainerElem<T>: Init<Data = ()>,
+        SingletonContainer<T>: Init<Data = ()>,
     {
-        self._add::<SingletonContainerElem<T>>(())
+        self._add::<SingletonContainer<T>>(())
     }
-    pub fn add_instance<T>(
-        self,
-        data: T,
-    ) -> ServiceProvider<HCons<InstanceContainerElem<T>, H>, S, SI>
+    pub fn add_instance<T>(self, data: T) -> ServiceProvider<HCons<InstanceContainer<T>, H>, S, SI>
     where
-        InstanceContainerElem<T>: Init<Data = T>,
+        InstanceContainer<T>: Init<Data = T>,
     {
-        self._add::<InstanceContainerElem<T>>(data)
+        self._add::<InstanceContainer<T>>(data)
     }
-    pub fn add_transient_<U, T>(self) -> ContainerAddConvertElem<T, U, H, S, SI>
+    pub fn add_transient_<U, T>(self) -> ContainerAddConvert<T, U, H, S, SI>
     where
         T: Into<U>,
-        ConvertContainerElem<TransientContainerElem<T>, T, U>: Init<Data = ()>,
-        TransientContainerElem<T>: Init<Data = ()>,
+        ConvertContainer<TransientContainer<T>, T, U>: Init<Data = ()>,
+        TransientContainer<T>: Init<Data = ()>,
     {
-        self._add::<ConvertContainerElem<TransientContainerElem<T>, T, U>>(())
+        self._add::<ConvertContainer<TransientContainer<T>, T, U>>(())
     }
 }
 

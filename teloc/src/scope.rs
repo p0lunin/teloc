@@ -1,4 +1,4 @@
-use crate::container_elem::{ContainerElem, Init};
+use crate::container::{Container, Init};
 use crate::dependency::DependencyClone;
 use crate::{Dependency, GetDependencies, Resolver};
 use frunk::hlist::{h_cons, HList, Selector};
@@ -100,7 +100,7 @@ where
 }
 
 pub struct ScopedContainerElem<T>(OnceCell<T>);
-impl<T> ContainerElem<T> for ScopedContainerElem<T> {}
+impl<T> Container<T> for ScopedContainerElem<T> {}
 impl<T> Init for ScopedContainerElem<T> {
     type Data = ();
 
@@ -135,9 +135,9 @@ where
     }
 }
 
-pub struct ScopedInstanceContainerElem<T>(T);
-impl<T> ContainerElem<T> for ScopedInstanceContainerElem<T> {}
-impl<T> Init for ScopedInstanceContainerElem<T> {
+pub struct ScopedInstanceContainer<T>(T);
+impl<T> Container<T> for ScopedInstanceContainer<T> {}
+impl<T> Init for ScopedInstanceContainer<T> {
     type Data = T;
 
     fn init(t: Self::Data) -> Self {
@@ -145,10 +145,10 @@ impl<T> Init for ScopedInstanceContainerElem<T> {
     }
 }
 impl<'a, SP, S, SI, T, Index>
-    Resolver<'a, ScopedInstanceContainerElem<T>, T, Scope<'a, SP, S, SI>, Index>
+    Resolver<'a, ScopedInstanceContainer<T>, T, Scope<'a, SP, S, SI>, Index>
     for Scope<'a, SP, S, SI>
 where
-    SI: Selector<ScopedInstanceContainerElem<T>, Index>,
+    SI: Selector<ScopedInstanceContainer<T>, Index>,
     T: DependencyClone + 'a,
 {
     fn resolve(&'a self) -> T {
@@ -156,12 +156,12 @@ where
     }
 }
 
-pub struct ByRefScopedContainerElem<T>(PhantomData<T>);
-impl<T> ContainerElem<&T> for ByRefScopedContainerElem<T> {}
+pub struct ByRefScopedContainer<T>(PhantomData<T>);
+impl<T> Container<&T> for ByRefScopedContainer<T> {}
 impl<'a, SP, S, SI, T, Index, Deps, DepsElems, Indexes>
     Resolver<
         'a,
-        ByRefScopedContainerElem<T>,
+        ByRefScopedContainer<T>,
         &'a T,
         Scope<'a, SP, S, SI>,
         (Index, Deps, DepsElems, Indexes),
@@ -190,13 +190,13 @@ where
     }
 }
 
-pub struct ByRefScopedInstanceContainerElem<T>(PhantomData<T>);
-impl<T> ContainerElem<&T> for ByRefScopedInstanceContainerElem<T> {}
+pub struct ByRefScopedInstanceContainer<T>(PhantomData<T>);
+impl<T> Container<&T> for ByRefScopedInstanceContainer<T> {}
 impl<'a, SP, S, SI, T, Index>
-    Resolver<'a, ByRefScopedInstanceContainerElem<T>, &'a T, Scope<'a, SP, S, SI>, Index>
+    Resolver<'a, ByRefScopedInstanceContainer<T>, &'a T, Scope<'a, SP, S, SI>, Index>
     for Scope<'a, SP, S, SI>
 where
-    SI: Selector<ScopedInstanceContainerElem<T>, Index>,
+    SI: Selector<ScopedInstanceContainer<T>, Index>,
 {
     fn resolve(&'a self) -> &'a T {
         &self.scoped_i.get().0

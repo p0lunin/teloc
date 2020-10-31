@@ -1,4 +1,4 @@
-pub mod container_elem;
+pub mod container;
 mod dependency;
 mod get;
 mod get_dependencies;
@@ -31,7 +31,7 @@ macro_rules! scopei {
     [] => { teloc::frunk::HNil };
     [$x:expr, $($xs:expr),*] => {
         teloc::frunk::hlist::h_cons(
-            teloc::container_elem::Init::init($x),
+            teloc::container::Init::init($x),
             teloc::scopei![$($xs,)*]
         )
     }

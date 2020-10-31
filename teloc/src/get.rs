@@ -1,6 +1,6 @@
-use crate::container_elem::ContainerElem;
+use crate::container::Container;
 
-pub trait Resolver<'a, T: ContainerElem<TE>, TE, SP, Other>
+pub trait Resolver<'a, T: Container<TE>, TE, SP, Other>
 where
     TE: 'a,
 {

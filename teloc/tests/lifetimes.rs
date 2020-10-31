@@ -1,4 +1,4 @@
-use teloc::{Dependency, Resolver, ServiceProvider, Teloc, inject};
+use teloc::{inject, Dependency, Resolver, ServiceProvider, Teloc};
 use uuid::Uuid;
 
 #[derive(Debug, PartialEq)]
