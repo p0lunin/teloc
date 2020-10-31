@@ -42,6 +42,7 @@ fn test_lifetimes() {
     let t1: Transient = scope1.resolve();
     let t1_1: Transient = scope1.resolve();
     let sc1: &Scoped = scope1.resolve();
+    let sc1_1: &Scoped = scope1.resolve();
     let si1: &Singleton = scope1.resolve();
     let i1: &Instance = scope1.resolve();
 
@@ -56,6 +57,7 @@ fn test_lifetimes() {
     assert_ne!(t1.u, t2.u);
     assert_ne!(sc1.u, sc2.u);
 
+    assert_eq!(sc1.u, sc1_1.u);
     assert_eq!(si1.u, si2.u);
     assert_eq!(i1.u, i2.u);
 }

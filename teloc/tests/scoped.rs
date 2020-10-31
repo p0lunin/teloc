@@ -1,4 +1,3 @@
-use teloc::scope::ScopeResolve;
 use teloc::{inject, Resolver, ServiceProvider, Teloc};
 
 #[derive(Clone)]
@@ -26,7 +25,6 @@ fn test() {
         .add_transient::<ConstService>()
         .add_transient::<Controller>();
     let scope = container.scope(teloc::scopei![true, 10]);
-    scope.resolve_scope();
     let controller: Controller = scope.resolve();
     assert_eq!(controller.number_service.number, 10);
 }
