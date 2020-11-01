@@ -26,7 +26,32 @@ customize process of resolving dependencies, create your own containers for depe
 TODO
 
 ## Comparison with other DI frameworks
-TODO
+<table>
+<tr>
+<td>Library</td>
+<td>Compile-time</td>
+<td>Can be used without dyn traits</td>
+<td>Many containers in one app</td>
+</tr>
+<tr>
+<td>teloc</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Mcat12/shaku">shaku</a></td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><a href="https://github.com/dmitryb-dev/waiter">waiter_di</a></td>
+<td>Yes</td>
+<td>Yes</td>
+<td>No</td>
+</tr>
+</table>
 
 ## How to read errors
 Sometimes `teloc` can give strange large errors. But no panic! You can define your problem by read the <a href="HOW-TO-READ-ERRORS">manual</a> of reading errors.
