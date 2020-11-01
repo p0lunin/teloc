@@ -359,7 +359,7 @@ where
 }
 
 impl<H, S, SI> ServiceProvider<H, S, SI> {
-    pub fn dependencies(&self) -> &H {
+    pub(crate) fn dependencies(&self) -> &H {
         &self.dependencies
     }
 }

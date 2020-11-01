@@ -1,6 +1,6 @@
 pub mod container;
 mod dependency;
-mod get;
+mod resolver;
 mod get_dependencies;
 pub mod scope;
 mod service_provider;
@@ -9,7 +9,7 @@ pub use {
     dependency::Dependency,
     frunk,
     frunk::Hlist,
-    get::Resolver,
+    resolver::Resolver,
     get_dependencies::GetDependencies,
     scope::Scope,
     service_provider::ServiceProvider,

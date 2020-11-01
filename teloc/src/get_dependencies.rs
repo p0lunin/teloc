@@ -4,7 +4,7 @@ pub trait GetDependencies<'a, Dependencies: 'a, DepsElems, Indexes> {
 
 mod impls {
     use crate::container::Container;
-    use crate::get::Resolver;
+    use crate::resolver::Resolver;
     use crate::GetDependencies;
     use frunk::hlist::HList;
     use frunk::{HCons, HNil};
