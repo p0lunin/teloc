@@ -54,7 +54,7 @@ TODO
 </table>
 
 ## How to read errors
-Sometimes `teloc` can give strange large errors. But no panic! You can define your problem by read the <a href="HOW-TO-READ-ERRORS">manual</a> of reading errors.
+Sometimes `teloc` can give strange large errors. But no panic! You can define your problem by read the <a href="HOW-TO-READ-ERRORS.md">manual</a> of reading errors.
 
 #### License
 
