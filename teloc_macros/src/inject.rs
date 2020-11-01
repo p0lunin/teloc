@@ -1,5 +1,5 @@
 use crate::common::{compile_error, get_1_method, ident_generator};
-use crate::generics::{get_impl_block_generics, get_struct_block_generics, get_where_clause};
+use crate::generics::{get_impl_block_generics, get_where_clause};
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseBuffer};
@@ -21,7 +21,6 @@ pub fn expand(input: &InjectInput) -> Result<TokenStream, TokenStream> {
 
     let generics = &input.generics();
     let impl_block_generics = generics.map(get_impl_block_generics);
-    let struct_block_generics = generics.map(get_struct_block_generics);
     let where_clause = generics.map(get_where_clause);
 
     let mut destructure = quote! { teloc::frunk::HNil };
@@ -44,7 +43,7 @@ pub fn expand(input: &InjectInput) -> Result<TokenStream, TokenStream> {
     };
 
     Ok(quote! {
-        impl #impl_block_generics teloc::Dependency<teloc::Hlist![#(#dependencies),*]> for #struct_ty #struct_block_generics #where_clause {
+        impl #impl_block_generics teloc::Dependency<teloc::Hlist![#(#dependencies),*]> for #struct_ty #where_clause {
             fn init(data: teloc::Hlist![#(#dependencies),*]) -> Self {
                 let #destructure = data;
                 #init
