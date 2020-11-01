@@ -1,7 +1,7 @@
 pub mod container;
 mod dependency;
-mod resolver;
 mod get_dependencies;
+mod resolver;
 pub mod scope;
 mod service_provider;
 
@@ -9,8 +9,8 @@ pub use {
     dependency::Dependency,
     frunk,
     frunk::Hlist,
-    resolver::Resolver,
     get_dependencies::GetDependencies,
+    resolver::Resolver,
     scope::Scope,
     service_provider::ServiceProvider,
     teloc_macros::{inject, Teloc},
