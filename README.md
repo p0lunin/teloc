@@ -22,8 +22,45 @@ That means that you cannot build your code if you do not register dependencies f
 - **Simple for simple usage, hard for hard things** - teloc provides you a simple API for simple things when you wish to use teloc for trivial cases. But you can
 customize process of resolving dependencies, create your own containers for dependencies and extend basic `ServiceProvider` your own methods!
 
-## Example of usage
-TODO
+## How to use
+1. Create a `ServiceProvider` object.
+2. Add your services and dependencies using `ServiceProvider::add_*` methods.
+3. Create `Scope` if need.
+4. Put your requests into service.
+
+Example:
+```rust
+use teloc::{inject, Resolver, ServiceProvider, Teloc};
+
+struct ConstService {
+    number: i32,
+}
+#[inject]
+impl ConstService {
+    pub fn new(number: i32) -> Self {
+        ConstService { number }
+    }
+}
+
+#[derive(Teloc)]
+struct Controller {
+    number_service: ConstService,
+}
+
+fn main() {
+    let container = ServiceProvider::new()
+        .add_scoped_i::<i32>()
+        .add_transient::<ConstService>()
+        .add_transient::<Controller>();
+    let scope = container.scope(teloc::scopei![10]);
+    let controller: Controller = scope.resolve();
+    assert_eq!(controller.number_service.number, 10);
+}
+```
+
+For documentation see [page on docs.rs](https://docs.rs/teloc/).
+
+For more examples see [tests folder](/teloc/tests)
 
 ## Comparison with other DI frameworks
 <table>
