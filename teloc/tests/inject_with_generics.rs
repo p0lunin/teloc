@@ -3,11 +3,15 @@ use teloc::{inject, scopei, Resolver, ServiceProvider};
 #[derive(Debug, PartialEq)]
 struct City(String);
 
-struct WeatherService<'a> { city: &'a City }
+struct WeatherService<'a> {
+    city: &'a City,
+}
 
 #[inject]
 impl<'a> WeatherService<'a> {
-    fn new(city: &'a City) -> Self { Self { city } }
+    fn new(city: &'a City) -> Self {
+        Self { city }
+    }
 }
 
 #[test]
