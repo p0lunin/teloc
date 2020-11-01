@@ -1,10 +1,11 @@
 use crate::container::{Container, Init};
 use crate::dependency::DependencyClone;
-use crate::{Dependency, GetDependencies, Resolver};
+use crate::{Dependency, Resolver};
 use frunk::hlist::{h_cons, HList, Selector};
 use frunk::{HCons, HNil};
 use once_cell::sync::OnceCell;
 use std::marker::PhantomData;
+use crate::get_dependencies::GetDependencies;
 
 pub struct Scope<'a, SP, Scoped, ScopedI> {
     pub(crate) container: &'a SP,

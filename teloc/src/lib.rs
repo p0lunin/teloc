@@ -9,7 +9,6 @@ pub use {
     dependency::Dependency,
     frunk,
     frunk::Hlist,
-    get_dependencies::GetDependencies,
     resolver::Resolver,
     scope::Scope,
     service_provider::ServiceProvider,

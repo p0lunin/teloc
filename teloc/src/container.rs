@@ -1,9 +1,10 @@
 use crate::dependency::DependencyClone;
-use crate::{Dependency, GetDependencies, Resolver};
+use crate::{Dependency, Resolver};
 use frunk::hlist::Selector;
 use frunk::HNil;
 use once_cell::sync::OnceCell;
 use std::marker::PhantomData;
+use crate::get_dependencies::GetDependencies;
 
 pub trait Init {
     type Data;
