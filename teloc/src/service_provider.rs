@@ -1,7 +1,7 @@
 use crate::container::{
     ConvertContainer, Init, InstanceContainer, SingletonContainer, TransientContainer,
 };
-use crate::scope::{InitScope, InitScoped, ScopedContainerElem, ScopedInstanceContainer};
+use crate::scope::{InitScoped, ScopedContainerElem, ScopedInstanceContainer};
 use crate::Scope;
 use frunk::hlist::{HList, Selector};
 use frunk::{HCons, HNil};

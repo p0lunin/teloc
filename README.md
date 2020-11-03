@@ -26,7 +26,8 @@ customize process of resolving dependencies, create your own containers for depe
 1. Create a `ServiceProvider` object.
 2. Add your services and dependencies using `ServiceProvider::add_*` methods.
 3. Create `Scope` if need.
-4. Put your requests into service.
+4. Get service from container using.
+5. Put your requests into service.
 
 Example:
 ```rust

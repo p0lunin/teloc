@@ -1,16 +1,23 @@
+//! This is a section for advanced usage. For common usage you can not read this page.
+
 use crate::dependency::DependencyClone;
+use crate::get_dependencies::GetDependencies;
 use crate::{Dependency, Resolver};
 use frunk::hlist::Selector;
 use frunk::HNil;
 use once_cell::sync::OnceCell;
 use std::marker::PhantomData;
-use crate::get_dependencies::GetDependencies;
 
+/// Init is a trait used in `ServiceProvider` for create an empty version of `Container`.
 pub trait Init {
     type Data;
     fn init(data: Self::Data) -> Self;
 }
+/// Container is a trait that used in `Get` trait to indicate a return value. Generic T shows that
+/// which type will be returned by `Get` trait.
 pub trait Container<T> {}
+/// Trait needed primary to working with `ConvertContainer`. Implement it for your container if you
+/// wish that your container can be placed inside of `ConvertContainer`
 pub trait ResolveContainer<'a, ContGet, Deps> {
     type Output;
     fn resolve_container<F: Fn() -> Deps>(ct: &'a ContGet, get_deps: F) -> Self::Output;

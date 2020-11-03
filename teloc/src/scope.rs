@@ -1,67 +1,30 @@
 use crate::container::{Container, Init};
 use crate::dependency::DependencyClone;
+use crate::get_dependencies::GetDependencies;
 use crate::{Dependency, Resolver};
 use frunk::hlist::{h_cons, HList, Selector};
 use frunk::{HCons, HNil};
 use once_cell::sync::OnceCell;
 use std::marker::PhantomData;
-use crate::get_dependencies::GetDependencies;
 
+/// Scope is a service provider, used for scoped dependencies. For instantiate `Scope` use
+/// `ServiceProvider::scope` function. Scoped services can depend on `Transient` and `Singleton`
+/// lifetimes.
 pub struct Scope<'a, SP, Scoped, ScopedI> {
     pub(crate) container: &'a SP,
     scoped: Scoped,
     scoped_i: ScopedI,
 }
 
-pub trait InitScope<'a, SP, SI>: Sized {
-    fn new(container: &'a SP, scoped_i: SI) -> Self;
-}
-
-impl<'a, SP, Scoped, SI> InitScope<'a, SP, SI> for Scope<'a, SP, Scoped, SI>
+impl<'a, SP, Scoped, SI> Scope<'a, SP, Scoped, SI>
 where
     Scoped: InitScoped,
 {
-    fn new(container: &'a SP, scoped_i: SI) -> Self {
+    pub(crate) fn new(container: &'a SP, scoped_i: SI) -> Self {
         Scope {
             container,
             scoped: Scoped::init(),
             scoped_i,
-        }
-    }
-}
-
-pub trait ScopeResolve<'a, Other> {
-    fn resolve_scope(&'a self);
-}
-
-impl<'a, SP, Scoped, SI, Other> ScopeResolve<'a, Other> for Scope<'a, SP, Scoped, SI>
-where
-    Scoped: ResolveDependencies<'a, Self, Other>,
-{
-    fn resolve_scope(&'a self) {
-        self.scoped.resolve_deps(self)
-    }
-}
-
-pub trait ResolveDependencies<'a, Scope, Other> {
-    fn resolve_deps(&self, scope: &'a Scope);
-}
-
-impl<'a, SP, Scoped, SI, T, Rest, Deps, DepsElems, Indexes, OtherRest>
-    ResolveDependencies<'a, Scope<'a, SP, Scoped, SI>, (Deps, DepsElems, Indexes, OtherRest)>
-    for HCons<ScopedContainerElem<T>, Rest>
-where
-    Rest: ResolveDependencies<'a, Scope<'a, SP, Scoped, SI>, OtherRest>,
-    T: Dependency<Deps>,
-    Deps: 'a,
-    Scope<'a, SP, Scoped, SI>: GetDependencies<'a, Deps, DepsElems, Indexes>,
-{
-    fn resolve_deps(&self, scope: &'a Scope<'a, SP, Scoped, SI>) {
-        let HCons { head, tail } = self;
-        tail.resolve_deps(scope);
-        match head.0.set(T::init(scope.get_deps())) {
-            Ok(_) => {}
-            Err(_) => unreachable!(),
         }
     }
 }
@@ -93,9 +56,8 @@ where
         self.container.get()
     }
 
-    // NEVER USE THIS FUNCTION
     fn get_mut(&mut self) -> &mut T {
-        unreachable!()
+        unreachable!("NEVER USE THIS FUNCTION")
     }
 }
 
