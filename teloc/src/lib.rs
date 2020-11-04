@@ -33,6 +33,12 @@ pub mod reexport {
 #[macro_export]
 macro_rules! scopei {
     [] => { teloc::reexport::frunk::HNil };
+    [$x:expr] => {
+        teloc::reexport::frunk::hlist::h_cons(
+            teloc::container::Init::init($x),
+            teloc::reexport::frunk::HNil
+        )
+    };
     [$x:expr, $($xs:expr),*] => {
         teloc::reexport::frunk::hlist::h_cons(
             teloc::container::Init::init($x),
