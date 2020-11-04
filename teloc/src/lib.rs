@@ -16,6 +16,7 @@ pub use {
 };
 
 pub mod reexport {
+    //! This module is used to reexport some libraries to `teloc-macros`
     pub use {frunk, frunk::Hlist};
 }
 
