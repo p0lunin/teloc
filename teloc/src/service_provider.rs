@@ -7,6 +7,46 @@ use frunk::hlist::{HList, Selector};
 use frunk::{HCons, HNil};
 use std::marker::PhantomData;
 
+/// `ServiceProvider` struct is used as an IoC-container in which you declare your dependencies.
+///
+/// Algorithm for working in `ServiceProvider` is:
+/// 1. Create an empty by `ServiceProvider::new` function.
+/// 2. Declare your dependencies using `add_*` methods (more about theirs read below).
+/// 3. Create `Scope` when you need working with scoped sessions (like when you processing web request).
+/// 4. Get needed dependencies from container using `Resolver::resolve` trait.
+///
+/// If you do not register all of needed dependencies, then compiler do not compile your code. If error
+/// puts you into a stupor, read our [manual] about how read errors.
+///
+/// [manual]: https://github.com/p0lunin/teloc/blob/master/HOW-TO-READ-ERRORS.md
+///
+/// Example of usage `ServiceProvider`:
+/// ```
+/// use teloc::*;
+/// struct ConstService {
+///     number: i32,
+/// }
+///
+/// #[inject]
+/// impl ConstService {
+///     pub fn new(number: i32) -> Self {
+///         ConstService { number }
+///     }
+/// }
+///
+/// #[derive(Teloc)]
+/// struct Controller {
+///     number_service: ConstService,
+/// }
+///
+/// let container = ServiceProvider::new()
+///     .add_scoped_i::<i32>()
+///     .add_transient::<ConstService>()
+///     .add_transient::<Controller>();
+/// let scope = container.scope(teloc::scopei![10]);
+/// let controller: Controller = scope.resolve();
+/// assert_eq!(controller.number_service.number, 10);
+/// ```
 pub struct ServiceProvider<Dependencies, Scoped, ScopedI> {
     dependencies: Dependencies,
     scoped_i: PhantomData<ScopedI>,
@@ -14,6 +54,7 @@ pub struct ServiceProvider<Dependencies, Scoped, ScopedI> {
 }
 
 impl ServiceProvider<HNil, HNil, HNil> {
+    /// Create an empty instance of `ServiceProvider`
     pub fn new() -> Self {
         ServiceProvider {
             dependencies: HNil,
@@ -29,6 +70,7 @@ impl Default for ServiceProvider<HNil, HNil, HNil> {
     }
 }
 
+// Clippy requires to create type aliases
 type ContainerTransientAddConvert<T, U, H, S, SI> =
     ServiceProvider<HCons<ConvertContainer<TransientContainer<T>, T, U>, H>, S, SI>;
 type ContainerSingletonAddConvert<T, U, H, S, SI> =

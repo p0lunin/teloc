@@ -8,7 +8,12 @@ use frunk::HNil;
 use once_cell::sync::OnceCell;
 use std::marker::PhantomData;
 
-/// Init is a trait used in `ServiceProvider` for create an empty version of `Container`.
+/// Init is a trait used in [`ServiceProvider`] for create an empty version of `Container`. If you
+/// create your own version of container and you want that it can work with other container like
+/// [`ConvertContainer`], you must implement this trait.
+///
+/// [`ServiceProvider`]: teloc::ServiceProvider
+/// [`ConvertContainer`]: teloc::container::ConvertContainer
 pub trait Init {
     type Data;
     fn init(data: Self::Data) -> Self;
