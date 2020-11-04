@@ -1,3 +1,5 @@
+//! This module contains `Scope` data type and such containers related to `Scoped` lifetime.
+
 use crate::container::{Container, Init};
 use crate::dependency::DependencyClone;
 use crate::get_dependencies::GetDependencies;
