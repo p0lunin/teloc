@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 pub mod container;
 mod dependency;
 mod get_dependencies;
