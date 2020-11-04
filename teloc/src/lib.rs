@@ -9,13 +9,15 @@ mod service_provider;
 
 pub use {
     dependency::Dependency,
-    frunk,
-    frunk::Hlist,
     resolver::Resolver,
     scope::Scope,
     service_provider::ServiceProvider,
     teloc_macros::{inject, Teloc},
 };
+
+pub mod reexport {
+    pub use {frunk, frunk::Hlist};
+}
 
 /// This macro creates an `HList` with data needed to send to the `Scope` when it init.
 /// Usage:
@@ -29,9 +31,9 @@ pub use {
 /// ```
 #[macro_export]
 macro_rules! scopei {
-    [] => { teloc::frunk::HNil };
+    [] => { teloc::reexport::frunk::HNil };
     [$x:expr, $($xs:expr),*] => {
-        teloc::frunk::hlist::h_cons(
+        teloc::reexport::frunk::hlist::h_cons(
             teloc::container::Init::init($x),
             teloc::scopei![$($xs,)*]
         )

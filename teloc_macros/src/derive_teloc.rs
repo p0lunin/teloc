@@ -50,10 +50,10 @@ pub fn derive(
     let ty_dep = injectable.iter().map(|f| f.field_ty);
     let ty_dep2 = injectable.iter().map(|f| f.field_ty);
 
-    let mut destructure = quote! { teloc::frunk::HNil };
+    let mut destructure = quote! { teloc::reexport::frunk::HNil };
     injectable.iter().map(|f| f.field).rev().for_each(|id| {
         destructure = quote! {
-            teloc::frunk::HCons {
+            teloc::reexport::frunk::HCons {
                 head: #id,
                 tail: #destructure
             }
@@ -63,10 +63,10 @@ pub fn derive(
 
     Ok(quote! {
         impl #impl_block_generics
-            teloc::Dependency<teloc::Hlist![#(#ty_dep),*]>
+            teloc::Dependency<teloc::reexport::Hlist![#(#ty_dep),*]>
         for #ident #struct_block_generics #where_clause
         {
-            fn init(deps: teloc::Hlist![#(#ty_dep2),*]) -> Self {
+            fn init(deps: teloc::reexport::Hlist![#(#ty_dep2),*]) -> Self {
                 let #destructure = deps;
                 Self {
                     #(

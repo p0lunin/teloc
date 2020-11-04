@@ -23,13 +23,13 @@ pub fn expand(input: &InjectInput) -> Result<TokenStream, TokenStream> {
     let impl_block_generics = generics.map(get_impl_block_generics);
     let where_clause = generics.map(get_where_clause);
 
-    let mut destructure = quote! { teloc::frunk::HNil };
+    let mut destructure = quote! { teloc::reexport::frunk::HNil };
     ident_generator(dependencies.len())
         .into_iter()
         .rev()
         .for_each(|id| {
             destructure = quote! {
-                teloc::frunk::HCons {
+                teloc::reexport::frunk::HCons {
                     head: #id,
                     tail: #destructure
                 }
@@ -43,8 +43,8 @@ pub fn expand(input: &InjectInput) -> Result<TokenStream, TokenStream> {
     };
 
     Ok(quote! {
-        impl #impl_block_generics teloc::Dependency<teloc::Hlist![#(#dependencies),*]> for #struct_ty #where_clause {
-            fn init(data: teloc::Hlist![#(#dependencies),*]) -> Self {
+        impl #impl_block_generics teloc::Dependency<teloc::reexport::Hlist![#(#dependencies),*]> for #struct_ty #where_clause {
+            fn init(data: teloc::reexport::Hlist![#(#dependencies),*]) -> Self {
                 let #destructure = data;
                 #init
             }
