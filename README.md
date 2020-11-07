@@ -4,7 +4,7 @@
     <img src="https://github.com/teloxide/teloxide/workflows/Continuous%20integration/badge.svg">
   </a>
 </div>
-Teloc is compile-time, blazing fast DI framework for Rust.
+Teloc is simple, compile-time DI framework for Rust.
 
 ## What is DI?
 [Link to Wikipedia](https://en.wikipedia.org/wiki/Dependency_injection)
@@ -16,18 +16,36 @@ Teloc is compile-time, blazing fast DI framework for Rust.
 > (a client) that would use it. 
 
 ## Highlights
-- **Compile-time** - teloc uses all power of functional paradigm of [frunk](https://github.com/lloydmeta/frunk) library, resolves all dependencies in compile-time. 
-That means that you cannot build your code if you do not register dependencies for all of registered dependencies. If your code is compile, that mean it run!
-- **Blazing fast** - teloc uses only zero-cost abstractions such as traits, generics, newtypes and unit types, so you don't worry about speed of resolving dependencies.
-- **Simple for simple usage, hard for hard things** - teloc provides you a simple API for simple things when you wish to use teloc for trivial cases. But you can
-customize process of resolving dependencies, create your own containers for dependencies and extend basic `ServiceProvider` your own methods!
+- **Compile-time** - teloc uses powerful rust type system for lifetime and existing of dependencies checking in 
+compile-time. That means that you cannot build your code if you do not register dependencies for all of registered 
+dependencies or lifetime of dependency does not correspondence to requester. If your code is compile, that mean it run!
+- **Zero-overhead** - teloc uses only zero-overhead abstractions such as traits, generics, newtypes and unit types, and
+compile-time resolving of dependencies, so you don't worry about overhead in runtime.
+- **Simple API** - teloc provides you a simple API with only two structs and one attribute macro needed for working with
+library.
 
 ## How to use
-1. Create a `ServiceProvider` object.
-2. Add your services and dependencies using `ServiceProvider::add_*` methods.
-3. Create `Scope` if need.
-4. Get service from container using.
-5. Put your requests into service.
+There are 2 types can be provider of services: `ServiceProvider` and `Scope`. First used as store for dependencies with
+`Instance` and `Singleton` lifetimes, and for declaring all dependencies using `.add_*()` methods. `Scope` can be 
+created from `ServiceProvider` object by calling method `ServiceProvider::scope`.
+
+There are four lifetimes for dependencies:
+1. `Transient`. Service will be created when resolves. Can depend on dependencies with anything lifetime. If depend on
+dependency with `Scoped` lifetime can be resolves only from `Scope` object.
+2. `Scoped`. Service will be created once at `Scope` when it resolved (lazy). Can depend on dependencies with anything 
+lifetime.
+3. `Singleton`. Service will be created once at `ServiceProvider` when it resolved (lazy). Can depend on dependencies 
+with anything lifetime exclude `Scoped`.
+4. `Instance`. Dependency was created outside of `ServiceProvider`.
+
+Process of working with library:
+1. Define your structs.
+2. Create constructors and add `#[inject]` macro on its.
+3. Create a `ServiceProvider` object.
+4. Add your services and dependencies using `ServiceProvider::add_*` methods.
+5. Create `Scope` if need.
+6. Get service from container using `.resolve()` method.
+7. Work with service.
 
 Example:
 ```rust
@@ -43,6 +61,8 @@ impl ConstService {
     }
 }
 
+// derive macro can be used when all fields implement `Dependency` trait, but we do not recommend use it in production
+// code
 #[derive(Teloc)]
 struct Controller {
     number_service: ConstService,
