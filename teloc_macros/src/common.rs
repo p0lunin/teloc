@@ -3,7 +3,7 @@ use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use quote::ToTokens;
 use syn::spanned::Spanned;
-use syn::{Attribute, ImplItem, ImplItemMethod, ItemImpl, Path, PathArguments};
+use syn::{Attribute, ImplItem, ImplItemMethod, ItemImpl};
 
 pub fn compile_error<T: ToTokens>(data: T) -> proc_macro2::TokenStream {
     quote! {
@@ -11,27 +11,10 @@ pub fn compile_error<T: ToTokens>(data: T) -> proc_macro2::TokenStream {
     }
 }
 
-pub fn to_turbofish(path: &Path) -> TokenStream {
-    let mut res = quote! {};
-    for segment in path.segments.iter() {
-        let ident = &segment.ident;
-        res.extend(quote! {#ident});
-        match &segment.arguments {
-            PathArguments::None => {}
-            PathArguments::AngleBracketed(args) => {
-                res.extend(quote! { ::#args });
-            }
-            _ => unimplemented!(),
-        }
-    }
-
-    res
-}
-
 pub fn get_1_teloc_attr(attrs: &[Attribute]) -> Result<Option<&Attribute>, TokenStream> {
     let mut teloc_attrs = vec![];
     attrs.iter().for_each(|attr| {
-        if attr.path.is_ident("by") || attr.path.is_ident("init") {
+        if attr.path.is_ident("init") {
             teloc_attrs.push(attr);
         }
     });

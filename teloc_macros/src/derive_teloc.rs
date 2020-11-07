@@ -1,6 +1,6 @@
-use crate::common::{compile_error, get_1_teloc_attr, name_generator, to_turbofish};
+use crate::common::{compile_error, get_1_teloc_attr};
 use crate::generics::{get_impl_block_generics, get_struct_block_generics, get_where_clause};
-use proc_macro2::{Ident, Span, TokenStream};
+use proc_macro2::{Ident, TokenStream};
 use quote::quote;
 use syn::parse::{Parse, ParseBuffer};
 use syn::punctuated::Punctuated;
@@ -22,30 +22,8 @@ pub fn derive(
     let where_clause = get_where_clause(&generics);
 
     let init_field = initable.iter().map(|f| &f.field);
-    let init_field_ty = initable.iter().map(|f| match f.field_ty {
-        Type::Path(p) => to_turbofish(&p.path),
-        Type::Verbatim(v) => v.clone(),
-        Type::Macro(m) => quote! { #m },
-        _ => unimplemented!(),
-    });
+    let init_field_ty = initable.iter().map(|f| &f.field_ty);
     let init_field_exprs = initable.iter().map(|f| &f.args);
-
-    let trait_need = injectable.iter().map(|f| (f.field_ty, &f.get_by));
-
-    let mut needed = quote! {};
-    for ((i, (tr, get_by)), generic) in trait_need
-        .enumerate()
-        .zip(generate_generics(injectable.len()))
-    {
-        needed.extend(match get_by {
-            GetBy::Own => quote! { teloc::Get<#tr, #generic> },
-            GetBy::Ref => quote! { teloc::GetRef<#tr, #generic> },
-            GetBy::Clone => quote! { teloc::GetClone<#tr, #generic> },
-        });
-        if i != injectable.len() - 1 {
-            needed.extend(quote! { + });
-        }
-    }
 
     let ty_dep = injectable.iter().map(|f| f.field_ty);
     let ty_dep2 = injectable.iter().map(|f| f.field_ty);
@@ -70,7 +48,7 @@ pub fn derive(
                 let #destructure = deps;
                 Self {
                     #(
-                        #init_field : #init_field_ty::init(#init_field_exprs),
+                        #init_field : <#init_field_ty>::init(#init_field_exprs),
                     )*
                     #(
                         #names,
@@ -79,13 +57,6 @@ pub fn derive(
             }
         }
     })
-}
-
-fn generate_generics(count: usize) -> Vec<Ident> {
-    name_generator()
-        .map(|name| Ident::new(name.as_str(), Span::call_site()))
-        .take(count)
-        .collect()
 }
 
 fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
@@ -107,16 +78,6 @@ fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
                             field: &field.ident.as_ref().unwrap(), // TODO: unnamed fields
                         })
                     }
-                    "by" => {
-                        let get_by = attr
-                            .parse_args::<GetBy>()
-                            .map_err(|e| compile_error(e.to_compile_error()))?;
-                        injectable.push(InjectableField {
-                            field_ty: &field.ty,
-                            field: &field.ident.as_ref().unwrap(), // TODO: unnamed fields
-                            get_by,
-                        })
-                    }
                     _ => unreachable!(),
                 }
             }
@@ -124,7 +85,6 @@ fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
                 injectable.push(InjectableField {
                     field_ty: &field.ty,
                     field: &field.ident.as_ref().unwrap(), // TODO: unnamed fields
-                    get_by: GetBy::Own,
                 })
             }
         }
@@ -154,30 +114,6 @@ impl Parse for TelocAttr {
     }
 }
 
-enum GetBy {
-    Own,
-    Ref,
-    Clone,
-}
-
-impl Parse for GetBy {
-    fn parse(input: &ParseBuffer) -> Result<Self, syn::Error> {
-        let id: Ident = input.parse()?;
-        match id.to_string().as_str() {
-            "own" => Ok(GetBy::Own),
-            "reff" => Ok(GetBy::Ref),
-            "clone" => Ok(GetBy::Clone),
-            _ => Err(syn::Error::new(
-                id.span(),
-                format!(
-                    "Expected one of `own`, `ref`, `clone`, found {}",
-                    id.to_string()
-                ),
-            )),
-        }
-    }
-}
-
 struct TelocStruct<'a> {
     initable: Vec<InitableField<'a>>,
     injectable: Vec<InjectableField<'a>>,
@@ -191,5 +127,4 @@ struct InitableField<'a> {
 struct InjectableField<'a> {
     field_ty: &'a Type,
     field: &'a Ident,
-    get_by: GetBy,
 }
