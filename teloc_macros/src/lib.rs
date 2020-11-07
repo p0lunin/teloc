@@ -22,8 +22,8 @@ use syn::{parse_macro_input, DeriveInput};
 /// to calling `FieldType::init` method.
 ///
 /// Example:
-/// ```
-/// use teloc_macros::Dependency;
+/// ```compile_fail
+/// use teloc::Dependency;
 ///
 /// struct Number(u8);
 /// impl Number {
@@ -59,8 +59,8 @@ pub fn derive_teloc(tokens: TokenStream) -> TokenStream {
 /// We recommend using this macro in production code.
 ///
 /// Example:
-/// ```
-/// use teloc_macros::Dependency;
+/// ```compile_fail
+/// use teloc::inject;
 ///
 /// struct Number(u8);
 /// #[inject]
@@ -75,7 +75,6 @@ pub fn derive_teloc(tokens: TokenStream) -> TokenStream {
 /// fn create_foo(number: Number) -> Foo {
 ///     Foo { a: number }
 /// }
-///
 /// ```
 #[proc_macro_attribute]
 pub fn inject(_: TokenStream, input: TokenStream) -> TokenStream {
