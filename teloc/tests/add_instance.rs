@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use teloc::{Resolver, ServiceProvider, Teloc};
+use teloc::{Dependency, Resolver, ServiceProvider};
 
 struct ConstService {
     number: i32,
@@ -10,7 +10,7 @@ impl ConstService {
     }
 }
 
-#[derive(Teloc)]
+#[derive(Dependency)]
 struct Controller {
     number_service: Rc<ConstService>,
 }

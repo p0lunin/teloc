@@ -1,4 +1,4 @@
-use teloc::{inject, Resolver, ServiceProvider, Teloc};
+use teloc::{inject, Dependency, Resolver, ServiceProvider};
 
 struct NumberServiceOptions(i32);
 
@@ -26,7 +26,7 @@ impl From<Box<ConstService>> for Box<dyn NumberService> {
     }
 }
 
-#[derive(Teloc)]
+#[derive(Dependency)]
 struct Controller {
     number_service: Box<dyn NumberService>,
 }

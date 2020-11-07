@@ -34,7 +34,7 @@ use std::marker::PhantomData;
 ///     }
 /// }
 ///
-/// #[derive(Teloc)]
+/// #[derive(Dependency)]
 /// struct Controller {
 ///     number_service: ConstService,
 /// }
@@ -346,7 +346,7 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     ///     }
     /// }
     ///
-    /// #[derive(Teloc)]
+    /// #[derive(Dependency)]
     /// struct Controller {
     ///     number_service: Box<dyn NumberService>,
     /// }

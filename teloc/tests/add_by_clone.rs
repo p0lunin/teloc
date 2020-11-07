@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use teloc::{Resolver, ServiceProvider, Teloc};
+use teloc::{Dependency, Resolver, ServiceProvider};
 
 struct ConstService {
     data: i32,
@@ -11,18 +11,18 @@ impl ConstService {
     }
 }
 
-#[derive(Teloc)]
+#[derive(Dependency)]
 struct Controller {
     #[init(0, 1)]
     service: ConstService,
 }
 
-#[derive(Teloc)]
+#[derive(Dependency)]
 struct Schema1Cloned {
     a: Rc<Controller>,
 }
 
-#[derive(Teloc)]
+#[derive(Dependency)]
 struct Schema2Cloned {
     a: Rc<Controller>,
 }

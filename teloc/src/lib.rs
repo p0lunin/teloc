@@ -12,7 +12,7 @@ pub use {
     resolver::Resolver,
     scope::Scope,
     service_provider::ServiceProvider,
-    teloc_macros::{inject, Teloc},
+    teloc_macros::{inject, Dependency},
 };
 
 pub mod reexport {

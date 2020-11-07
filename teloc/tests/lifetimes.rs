@@ -1,4 +1,4 @@
-use teloc::{inject, Dependency, Resolver, ServiceProvider, Teloc};
+use teloc::{inject, Dependency, Resolver, ServiceProvider};
 use uuid::Uuid;
 
 #[derive(Debug, PartialEq)]
@@ -8,19 +8,19 @@ fn create_uuid() -> UUID {
     UUID(Uuid::new_v4())
 }
 
-#[derive(Teloc)]
+#[derive(Dependency)]
 struct Transient {
     u: UUID,
 }
-#[derive(Teloc)]
+#[derive(Dependency)]
 struct Scoped {
     u: UUID,
 }
-#[derive(Teloc)]
+#[derive(Dependency)]
 struct Singleton {
     u: UUID,
 }
-#[derive(Teloc)]
+#[derive(Dependency)]
 struct Instance {
     u: UUID,
 }

@@ -1,4 +1,4 @@
-use teloc::{inject, Resolver, ServiceProvider, Teloc};
+use teloc::{inject, Dependency, Resolver, ServiceProvider};
 
 struct NumberServiceOptions(i32);
 
@@ -11,7 +11,7 @@ fn init_const_service(options: &NumberServiceOptions) -> ConstService {
     ConstService { number: options.0 }
 }
 
-#[derive(Teloc)]
+#[derive(Dependency)]
 struct Controller {
     number_service: ConstService,
 }

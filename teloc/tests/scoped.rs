@@ -1,4 +1,4 @@
-use teloc::{inject, Resolver, ServiceProvider, Teloc};
+use teloc::{inject, Dependency, Resolver, ServiceProvider};
 
 #[derive(Clone)]
 struct ConstService {
@@ -12,7 +12,7 @@ impl ConstService {
     }
 }
 
-#[derive(Teloc)]
+#[derive(Dependency)]
 struct Controller {
     number_service: ConstService,
 }

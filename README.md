@@ -49,7 +49,7 @@ Process of working with library:
 
 Example:
 ```rust
-use teloc::{inject, Resolver, ServiceProvider, Teloc};
+use teloc::{inject, Resolver, ServiceProvider, Dependency};
 
 struct ConstService {
     number: i32,
@@ -63,7 +63,7 @@ impl ConstService {
 
 // derive macro can be used when all fields implement `Dependency` trait, but we do not recommend use it in production
 // code
-#[derive(Teloc)]
+#[derive(Dependency)]
 struct Controller {
     number_service: ConstService,
 }
