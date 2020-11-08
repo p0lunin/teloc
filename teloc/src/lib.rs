@@ -22,7 +22,7 @@
 //!
 //! Example:
 //! ```rust
-//! use teloc::{inject, Resolver, ServiceProvider, Dependency};
+//! use teloc::*;
 //!
 //! struct ConstService {
 //!     number: i32,
@@ -41,15 +41,13 @@
 //!     number_service: ConstService,
 //! }
 //!
-//! fn main() {
-//!     let container = ServiceProvider::new()
-//!         .add_scoped_i::<i32>()
-//!         .add_transient::<ConstService>()
-//!         .add_transient::<Controller>();
-//!     let scope = container.scope(teloc::scopei![10]);
-//!     let controller: Controller = scope.resolve();
-//!     assert_eq!(controller.number_service.number, 10);
-//! }
+//! let container = ServiceProvider::new()
+//!     .add_scoped_i::<i32>()
+//!     .add_transient::<ConstService>()
+//!     .add_transient::<Controller>();
+//! let scope = container.scope(teloc::scopei![10]);
+//! let controller: Controller = scope.resolve();
+//! assert_eq!(controller.number_service.number, 10);
 //! ```
 
 #![forbid(unsafe_code)]
