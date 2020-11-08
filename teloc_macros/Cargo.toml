@@ -3,8 +3,9 @@ name = "teloc_macros"
 version = "0.1.0"
 authors = ["p0lunin <dmytro.polunin@gmail.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Macros for teloc framework"
+repository = "https://github.com/p0lunin/teloc"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 quote = "1.0.7"

@@ -3,8 +3,12 @@ name = "teloc"
 version = "0.1.0"
 authors = ["p0lunin <dmytro.polunin@gmail.com>"]
 edition = "2018"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+description = "Simple, compile-time DI framework for Rust"
+repository = "https://github.com/p0lunin/teloc"
+keywords = ["teloc", "di", "ioc", "dependency injection"]
+license = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/teloc"
+readme = "../README.md"
 
 [dependencies]
 frunk = "0.3.1"
