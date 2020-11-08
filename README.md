@@ -90,23 +90,27 @@ For more examples see [tests folder](/teloc/tests)
 <td>Compile-time</td>
 <td>Can be used without dyn traits</td>
 <td>Many containers in one app</td>
+<td>Lifetimes</td>
 </tr>
 <tr>
 <td>teloc</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>Yes</td>
+<td>Transient, Scoped, Singleton, Instance</td>
 </tr>
 <tr>
 <td><a href="https://github.com/Mcat12/shaku">shaku</a></td>
 <td>Yes</td>
 <td>No</td>
 <td>Yes</td>
+<td>Transient (Provider), Singleton (Component)</td>
 </tr>
 <tr>
 <td><a href="https://github.com/dmitryb-dev/waiter">waiter_di</a></td>
 <td>Yes</td>
 <td>Yes</td>
+<td>No</td>
 <td>No</td>
 </tr>
 </table>
