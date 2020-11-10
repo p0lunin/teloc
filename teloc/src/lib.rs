@@ -54,7 +54,7 @@
 
 pub mod container;
 mod dependency;
-mod get_dependencies;
+pub mod get_dependencies;
 mod resolver;
 pub mod scope;
 mod service_provider;
