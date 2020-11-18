@@ -59,6 +59,23 @@ pub fn derive(
     })
 }
 
+pub fn derive_on_unit(ident: Ident, generics: &Generics) -> Result<TokenStream, TokenStream> {
+    let impl_block_generics = get_impl_block_generics(&generics);
+    let struct_block_generics = get_struct_block_generics(&generics);
+    let where_clause = get_where_clause(&generics);
+
+    Ok(quote! {
+        impl #impl_block_generics
+            teloc::Dependency<teloc::reexport::Hlist![]>
+        for #ident #struct_block_generics #where_clause
+        {
+            fn init(_: teloc::reexport::Hlist![]) -> Self {
+                #ident
+            }
+        }
+    })
+}
+
 fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
     let fields = get_fields(ds);
     let mut initable = vec![];

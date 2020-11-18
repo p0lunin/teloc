@@ -44,12 +44,11 @@ use syn::{parse_macro_input, DeriveInput};
 #[proc_macro_derive(Dependency, attributes(init))]
 pub fn derive_teloc(tokens: TokenStream) -> TokenStream {
     let input = parse_macro_input!(tokens as DeriveInput);
-    let s = match input.data {
-        Data::Struct(ds) => ds,
+    let res = match input.data {
+        Data::Struct(ds) => derive_teloc::derive(&ds, input.ident, &input.generics),
         Data::Enum(_) => return compile_error("Expected struct, found enum").into(),
-        Data::Union(_) => return compile_error("Expected struct, found union").into(),
+        Data::Union(_) => derive_teloc::derive_on_unit(input.ident, &input.generics),
     };
-    let res = derive_teloc::derive(&s, input.ident, &input.generics);
     res.unwrap_or_else(identity).into()
 }
 
