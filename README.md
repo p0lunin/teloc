@@ -90,7 +90,7 @@ For more examples see [examples folder](/examples) or [tests folder](/teloc/test
 ## Comparison with other DI frameworks
 <table>
 <tr>
-<td>**Feature**</td>
+<td><b>Feature</b></td>
 <td>teloc</td>
 <td><a href="https://github.com/Mcat12/shaku">shaku</a></td>
 <td><a href="https://github.com/dmitryb-dev/waiter">waiter_di</a></td>
