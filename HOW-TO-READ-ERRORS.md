@@ -17,10 +17,7 @@ It means that provider cannot resolve that `SERVICE`. Possible reasons are:
 2. If you register the `Service`, than check by which lifetime:
     - If it registered using `Transient` lifetime (`add_transient` method), than it can be resolved only by ownership,
     so check that it not resolved by reference.
-    - If it registered using `Scoped` lifetime (`add_scoped` method), than it can be resolved by clone in cases when
-    `Service` implement `DependencyClone`, so if you want to resolve it by clone, check that it implement `DependencyClone`.
-    Otherwise it can be resolved only by reference.
-    Also check that your `provider` has the type `Scope`, not `ServiceProvider`.
     - If it registered using `Singleton` lifetime (`add_singleton` method), than it can be resolved by clone in cases when
     `Service` implement `DependencyClone`, so if you want to resolve it by clone, check that it implement `DependencyClone`.
-    Otherwise it can be resolved only by reference.
+    It implement by default for `Rc`, `Arc` and `&T`. Otherwise it can be resolved only by reference.
+3. Check that you register all dependencies for the `SERVICE` by steps 1-2.
