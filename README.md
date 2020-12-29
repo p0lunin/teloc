@@ -21,7 +21,7 @@ compile-time. That means that you cannot build your code if you do not register 
 dependencies or lifetime of dependency does not correspondence to requester. If your code is compile, that mean it run!
 - **Zero-overhead** - teloc uses only zero-overhead abstractions such as traits, generics, newtypes and unit types, and
 compile-time resolving of dependencies, so you don't worry about overhead in runtime.
-- **Simple API** - teloc provides you a simple API with only two structs and one attribute macro needed for working with
+- **Simple API** - teloc provides you a simple API with only one struct and one attribute macro needed for working with
 library.
 
 ## How to use
@@ -30,26 +30,23 @@ There are 2 types can be provider of services: `ServiceProvider` and `Scope`. Fi
 created from `ServiceProvider` object by calling method `ServiceProvider::scope`.
 
 There are four lifetimes for dependencies:
-1. `Transient`. Service will be created when resolves. Can depend on dependencies with anything lifetime. If depend on
-dependency with `Scoped` lifetime can be resolves only from `Scope` object.
-2. `Scoped`. Service will be created once at `Scope` when it resolved (lazy). Can depend on dependencies with anything 
-lifetime.
-3. `Singleton`. Service will be created once at `ServiceProvider` when it resolved (lazy). Can depend on dependencies 
-with anything lifetime exclude `Scoped`.
-4. `Instance`. Dependency was created outside of `ServiceProvider`.
+1. `Transient`. Service will be created when resolves. Can depend on dependencies with anything lifetime.
+2. `Singleton`. Service will be created once at `ServiceProvider` when it resolved (lazy). Can depend on dependencies 
+with anything lifetime.
+3. `Instance`. Dependency was created outside of `ServiceProvider` and can be used by any other dependency.
 
 Process of working with library:
 1. Define your structs.
 2. Create constructors and add `#[inject]` macro on its.
 3. Create a `ServiceProvider` object.
 4. Add your services and dependencies using `ServiceProvider::add_*` methods.
-5. Create `Scope` if need.
-6. Get service from container using `.resolve()` method.
+5. Fork `ServiceProvider` if you need to create local scope.
+6. Get service from provider using `.resolve()` method.
 7. Work with service.
 
 Example:
 ```rust
-use teloc::{inject, Resolver, ServiceProvider, Dependency};
+use teloc::*;
 
 // Declare your structs
 struct ConstService {
@@ -63,19 +60,24 @@ impl ConstService {
     }
 }
 
-// derive macro can be used when all fields implement `Dependency` trait, but we recommend use #[inject] macro it in production
-// code instead
+// Derive macro can be used when all fields implement `Dependency` trait, but 
+// we recommend using the #[inject] macro it in production code instead.
 #[derive(Dependency)]
 struct Controller {
     number_service: ConstService,
 }
 
 fn main() {
-    let container = ServiceProvider::new()
-        .add_scoped_i::<i32>()
-        .add_transient::<ConstService>()
+    // Create `ServiceProvider` struct that store itself all dependencies
+    let sp = ServiceProvider::new()
+        // Add dependency with `Singleton` lifetime. More about lifetimes see above.
+        .add_singleton::<ConstService>()
+        // Add dependency with `Transient` lifetime. More about lifetimes see above.
         .add_transient::<Controller>();
-    let scope = container.scope(teloc::scopei![10]);
+    // Fork `ServiceProvider`. It creates a new `ServiceProvider` which will have
+    // access to the dependencies from parent `ServiceProvider`.
+    let scope = sp.fork().add_instance(10);
+    // Get dependency from `ServiceProvider`
     let controller: Controller = scope.resolve();
     assert_eq!(controller.number_service.number, 10);
 }
@@ -83,42 +85,58 @@ fn main() {
 
 For documentation see [page on docs.rs](https://docs.rs/teloc/).
 
-For more examples see [tests folder](/teloc/tests)
+For more examples see [examples folder](/examples) or [tests folder](/teloc/tests).
 
 ## Comparison with other DI frameworks
 <table>
 <tr>
-<td>Library</td>
-<td>Compile-time</td>
-<td>Can be used without dyn traits</td>
-<td>Many containers in one app</td>
-<td>Lifetimes</td>
-</tr>
-<tr>
+<td>**Feature**</td>
 <td>teloc</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Transient, Scoped, Singleton, Instance</td>
-</tr>
-<tr>
 <td><a href="https://github.com/Mcat12/shaku">shaku</a></td>
-<td>Yes</td>
-<td>No</td>
-<td>Yes</td>
-<td>Transient (Provider), Singleton (Component)</td>
+<td><a href="https://github.com/dmitryb-dev/waiter">waiter_di</a></td>
 </tr>
 <tr>
-<td><a href="https://github.com/dmitryb-dev/waiter">waiter_di</a></td>
+<td>Compile-time checks</td>
+<td>Yes</td>
+<td>Yes</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Can be used without dyn traits</td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td>Many service providers in one app</td>
 <td>Yes</td>
 <td>Yes</td>
 <td>No</td>
+</tr>
+<tr>
+<td>Different lifetimes</td>
+<td>Yes</td>
+<td>Yes</td>
 <td>No</td>
 </tr>
 </table>
 
 ## How to read errors
 Sometimes `teloc` can give strange large errors. But no panic! You can define your problem by read the <a href="HOW-TO-READ-ERRORS.md">manual</a> of reading errors.
+
+## Pro tips
+This section contains pro tips that you might want to use when working with the library.
+
+### Get type of instance of `ServiceProvider`
+It will be useful when you want to store an instance of `ServiceProvider` in a struct or return from a function or 
+pass as an argument.
+
+What you need:
+1. Paste following code after `ServiceProvider` initialization: `let () = service_provider;`.
+2. Compiler will give you very big terrible type starting with `teloc::ServiceProvider<...>`.
+3. Copy that type into type alias, for example `type ConcreteSP = /*copiler output*/;`.
+4. Use `ConcreteSP` when you want write `ServiceProvider` instance type.
+5. If you change `ServiceProvider` initialization repeat steps 1-4.
 
 #### License
 
