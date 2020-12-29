@@ -1,26 +1,16 @@
 use std::rc::Rc;
-use teloc::{Dependency, Resolver, ServiceProvider};
+use teloc::{Resolver, ServiceProvider};
 
-struct ConstService {
-    number: i32,
-}
-impl ConstService {
-    pub fn new(number: i32) -> Self {
-        ConstService { number }
-    }
-}
-
-#[derive(Dependency)]
-struct Controller {
-    number_service: Rc<ConstService>,
-}
+struct ConstService;
 
 #[test]
 fn test() {
-    let service = Rc::new(ConstService::new(10));
-    let container = ServiceProvider::new()
-        .add_instance(service)
-        .add_transient::<Controller>();
-    let controller: Controller = container.resolve();
-    assert_eq!(controller.number_service.number, 10);
+    let service = Rc::new(ConstService);
+    let container = ServiceProvider::new().add_instance(service);
+    let scope = container.fork();
+
+    let first: Rc<ConstService> = container.resolve();
+    let second: Rc<ConstService> = scope.resolve();
+
+    assert!(Rc::ptr_eq(&first, &second));
 }

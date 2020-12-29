@@ -51,9 +51,11 @@ Example:
 ```rust
 use teloc::{inject, Resolver, ServiceProvider, Dependency};
 
+// Declare your structs
 struct ConstService {
     number: i32,
 }
+// #[inject] macro is indicate that dependency can be constructed using this function
 #[inject]
 impl ConstService {
     pub fn new(number: i32) -> Self {
@@ -61,8 +63,8 @@ impl ConstService {
     }
 }
 
-// derive macro can be used when all fields implement `Dependency` trait, but we do not recommend use it in production
-// code
+// derive macro can be used when all fields implement `Dependency` trait, but we recommend use #[inject] macro it in production
+// code instead
 #[derive(Dependency)]
 struct Controller {
     number_service: ConstService,

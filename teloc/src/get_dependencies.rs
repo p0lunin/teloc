@@ -10,17 +10,20 @@ mod impls {
     use crate::container::Container;
     use crate::get_dependencies::GetDependencies;
     use crate::resolver::Resolver;
+    use crate::ServiceProvider;
     use frunk::hlist::HList;
     use frunk::{HCons, HNil};
 
-    impl<'a, T, TRest, CE, CERest, SP, I, IR>
-        GetDependencies<'a, HCons<T, TRest>, HCons<CE, CERest>, HCons<I, IR>> for SP
+    impl<'a, 'b: 'a, T, TRest, CE, CERest, I, IR, Parent, Deps>
+        GetDependencies<'a, HCons<T, TRest>, HCons<CE, CERest>, HCons<I, IR>>
+        for ServiceProvider<'b, Parent, Deps>
     where
-        TRest: HList,
         CE: Container<T>,
+        TRest: HList,
         TRest: 'a,
         T: 'a,
-        SP: Resolver<'a, CE, T, SP, I> + GetDependencies<'a, TRest, CERest, IR>,
+        ServiceProvider<'b, Parent, Deps>:
+            Resolver<'a, CE, T, I> + GetDependencies<'a, TRest, CERest, IR>,
     {
         fn get_deps(&'a self) -> HCons<T, TRest> {
             GetDependencies::<TRest, CERest, IR>::get_deps(self).prepend(self.resolve())

@@ -5,7 +5,7 @@ use crate::container::Container;
 /// only when you implement your own version of container.
 ///
 /// For common usage you need only import it from teloc, and calling `resolve` method when you need
-/// to get a service from `ServiceProvider` or `Scope`.
+/// to get a service from `ServiceProvider`.
 ///
 /// Example:
 ///
@@ -26,7 +26,7 @@ use crate::container::Container;
 ///
 /// assert_eq!(foo.0, 5)
 /// ```
-pub trait Resolver<'a, T: Container<TE>, TE, SP, Other>
+pub trait Resolver<'a, T: Container<TE>, TE, Other>
 where
     TE: 'a,
 {

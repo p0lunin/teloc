@@ -1,21 +1,8 @@
 use std::rc::Rc;
 use teloc::{Dependency, Resolver, ServiceProvider};
 
-struct ConstService {
-    data: i32,
-    data2: u8,
-}
-impl ConstService {
-    pub fn init(data: i32, data2: u8) -> Self {
-        ConstService { data, data2 }
-    }
-}
-
 #[derive(Dependency)]
-struct Controller {
-    #[init(0, 1)]
-    service: ConstService,
-}
+struct Controller;
 
 #[derive(Dependency)]
 struct Schema1Cloned {
@@ -35,10 +22,7 @@ fn test_cloned() {
         .add_transient::<Schema2Cloned>();
 
     let schema1: Schema1Cloned = container.resolve();
-    assert_eq!(schema1.a.service.data, 0);
-    assert_eq!(schema1.a.service.data2, 1);
-
     let schema2: Schema2Cloned = container.resolve();
-    assert_eq!(schema2.a.service.data, 0);
-    assert_eq!(schema2.a.service.data2, 1);
+
+    assert!(Rc::ptr_eq(&schema1.a, &schema2.a));
 }

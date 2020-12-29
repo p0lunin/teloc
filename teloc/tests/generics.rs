@@ -33,7 +33,7 @@ fn test() {
         .add_instance(options)
         .add_transient::<ConstService>()
         .add_transient::<Controller<ConstService>>();
-    let controller: Controller<_> = container.resolve();
+    let controller: Controller<ConstService> = container.resolve();
 
     assert_eq!(controller.number_service.get_num(), 10);
 }

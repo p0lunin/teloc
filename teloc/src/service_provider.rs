@@ -1,18 +1,16 @@
 use crate::container::{
     ConvertContainer, Init, InstanceContainer, SingletonContainer, TransientContainer,
 };
-use crate::scope::{InitScoped, ScopedContainerElem, ScopedInstanceContainer};
-use crate::Scope;
+use crate::index::{ParentIndex, SelfIndex};
 use frunk::hlist::{HList, Selector};
 use frunk::{HCons, HNil};
-use std::marker::PhantomData;
 
 /// `ServiceProvider` struct is used as an IoC-container in which you declare your dependencies.
 ///
 /// Algorithm for working in `ServiceProvider` is:
 /// 1. Create an empty by `ServiceProvider::new` function.
 /// 2. Declare your dependencies using `add_*` methods (more about theirs read below).
-/// 3. Create `Scope` when you need working with scoped sessions (like when you processing web request).
+/// 3. Fork `ServiceProvider` when you need working with scoped sessions (like when you processing web request).
 /// 4. Get needed dependencies from container using `Resolver::resolve` trait.
 ///
 /// If you do not register all of needed dependencies, then compiler do not compile your code. If error
@@ -40,43 +38,58 @@ use std::marker::PhantomData;
 /// }
 ///
 /// let container = ServiceProvider::new()
-///     .add_scoped_i::<i32>()
 ///     .add_transient::<ConstService>()
 ///     .add_transient::<Controller>();
-/// let scope = container.scope(teloc::scopei![10]);
+/// let scope = container.fork().add_instance(10);
 /// let controller: Controller = scope.resolve();
 /// assert_eq!(controller.number_service.number, 10);
 /// ```
-pub struct ServiceProvider<Dependencies, Scoped, ScopedI> {
+pub struct ServiceProvider<'a, Parent, Dependencies> {
+    parent: &'a Parent,
     dependencies: Dependencies,
-    scoped_i: PhantomData<ScopedI>,
-    scoped: PhantomData<Scoped>,
 }
 
-impl ServiceProvider<HNil, HNil, HNil> {
+pub struct EmptyServiceProvider;
+
+impl ServiceProvider<'static, EmptyServiceProvider, HNil> {
     /// Create an empty instance of `ServiceProvider`
     pub fn new() -> Self {
         ServiceProvider {
+            parent: &EmptyServiceProvider,
             dependencies: HNil,
-            scoped_i: PhantomData,
-            scoped: PhantomData,
         }
     }
 }
 
-impl Default for ServiceProvider<HNil, HNil, HNil> {
+impl Default for ServiceProvider<'static, EmptyServiceProvider, HNil> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-// Clippy requires to create type aliases
-type ContainerTransientAddConvert<T, U, H, S, SI> =
-    ServiceProvider<HCons<ConvertContainer<TransientContainer<T>, T, U>, H>, S, SI>;
-type ContainerSingletonAddConvert<T, U, H, S, SI> =
-    ServiceProvider<HCons<ConvertContainer<SingletonContainer<T>, T, U>, H>, S, SI>;
+impl<'a, Parent, Deps> ServiceProvider<'a, Parent, Deps> {
+    /// Forking `ServiceProvider` creates a new `ServiceProvider` with reference to the parent.
+    /// `resolve` method on forked `ServiceProvider` will find dependencies form self and parent.
+    pub fn fork<'b>(&'b self) -> ServiceProvider<'b, Self, HNil>
+    where
+        'a: 'b,
+    {
+        ServiceProvider {
+            parent: self,
+            dependencies: HNil,
+        }
+    }
+}
 
-impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
+// Clippy requires to create type aliases
+type ContainerTransientAddConvert<'a, P, T, U, H> =
+    ServiceProvider<'a, P, HCons<ConvertContainer<TransientContainer<T>, T, U>, H>>;
+type ContainerSingletonAddConvert<'a, P, T, U, H> =
+    ServiceProvider<'a, P, HCons<ConvertContainer<SingletonContainer<T>, T, U>, H>>;
+type ContainerInstanceAddConvert<'a, P, T, U, H> =
+    ServiceProvider<'a, P, HCons<ConvertContainer<InstanceContainer<T>, T, U>, H>>;
+
+impl<'a, Parent, Deps: HList> ServiceProvider<'a, Parent, Deps> {
     /// Method used primary for internal actions. In common usage you don't need to use it. It add dependencies to the store. You need
     /// to put in first generic parameter some `ContainerElem` type.
     /// Usage:
@@ -92,12 +105,17 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     /// let sp = ServiceProvider::new()
     ///     ._add::<TransientContainer<Service>>(());
     /// ```
-    pub fn _add<T: Init>(self, data: T::Data) -> ServiceProvider<HCons<T, H>, S, SI> {
-        let ServiceProvider { dependencies, .. } = self;
+    pub fn _add<Container: Init>(
+        self,
+        data: Container::Data,
+    ) -> ServiceProvider<'a, Parent, HCons<Container, Deps>> {
+        let ServiceProvider {
+            parent,
+            dependencies,
+        } = self;
         ServiceProvider {
-            dependencies: dependencies.prepend(T::init(data)),
-            scoped_i: PhantomData,
-            scoped: PhantomData,
+            parent,
+            dependencies: dependencies.prepend(Container::init(data)),
         }
     }
 
@@ -125,124 +143,16 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     ///
     /// assert_ne!(s1.uuid, s2.uuid);
     /// ```
-    pub fn add_transient<T>(self) -> ServiceProvider<HCons<TransientContainer<T>, H>, S, SI>
+    pub fn add_transient<T>(self) -> ServiceProvider<'a, Parent, HCons<TransientContainer<T>, Deps>>
     where
         TransientContainer<T>: Init<Data = ()>,
     {
         self._add::<TransientContainer<T>>(())
     }
 
-    /// Add dependency with the `Scoped` lifetime. Scoped services will be created only one time for
-    /// one scope, which can be created using `ServiceProvider::scope` method. Scoped dependencies
-    /// is not available in `ServiceProvider`, only in `Scope`.
-    ///
-    /// Can be resolved by reference or by cloning. If you wish to clone this dependency then it
-    /// must implement `DependencyClone` trait. For more information see `DependencyClone` trait.
-    ///
-    /// Usage:
-    /// ```
-    /// use teloc::*;
-    /// use uuid::Uuid;
-    ///
-    /// struct Service { uuid: Uuid }
-    /// #[inject]
-    /// impl Service {
-    ///     fn new() -> Self { Self { uuid: Uuid::new_v4() } }
-    /// }
-    ///
-    /// let sp = ServiceProvider::new()
-    ///     .add_scoped::<Service>();
-    ///
-    /// // .scope_() is a wrapper for .scope(HNil)
-    /// let scope1 = sp.scope_();
-    ///
-    /// let s1: &Service = scope1.resolve();
-    /// let s2: &Service = scope1.resolve();
-    ///
-    /// let scope2 = sp.scope_();
-    /// let s3: &Service = scope2.resolve();
-    ///
-    /// assert_eq!(s1.uuid, s2.uuid);
-    /// assert_ne!(s1.uuid, s3.uuid);
-    /// ```
-    ///
-    /// Usage with cloning:
-    ///
-    /// ```
-    /// use teloc::*;
-    /// use uuid::Uuid;
-    /// use std::rc::Rc;
-    ///
-    /// struct Service { uuid: Uuid }
-    /// #[inject]
-    /// impl Service {
-    ///     fn new() -> Self { Self { uuid: Uuid::new_v4() } }
-    /// }
-    ///
-    /// let sp = ServiceProvider::new()
-    ///     .add_scoped::<Rc<Service>>();
-    ///
-    /// let scope = sp.scope_();
-    ///
-    /// let s1: Rc<Service> = scope.resolve();
-    /// let s2: Rc<Service> = scope.resolve();
-    ///
-    /// assert_eq!(s1.uuid, s2.uuid)
-    /// ```
-    #[inline]
-    pub fn add_scoped<T>(self) -> ServiceProvider<H, HCons<ScopedContainerElem<T>, S>, SI> {
-        let ServiceProvider { dependencies, .. } = self;
-        ServiceProvider {
-            dependencies,
-            scoped_i: PhantomData,
-            scoped: PhantomData,
-        }
-    }
-
-    /// Add information about instance that should be added to `Scope` before it's initialization.
-    /// It can be `Request`, `DbConnection`, etc. It must be passed to `ServiceProvider::scope`
-    /// method in future. Scoped dependencies is not available in `ServiceProvider`, only in `Scope`.
-    ///
-    /// Usage:
-    /// ```
-    /// use teloc::*;
-    ///
-    /// #[derive(Debug, PartialEq)]
-    /// struct City(String);
-    ///
-    /// // Note that we does not implement `DependencyClone` for City so only way to give `City`
-    /// // value is by reference
-    /// struct WeatherService<'a> { city: &'a City }
-    /// #[inject]
-    /// impl<'a> WeatherService<'a> {
-    ///     fn new(city: &'a City) -> Self { Self { city } }
-    /// }
-    ///
-    /// let sp = ServiceProvider::new()
-    ///     .add_scoped_i::<City>()
-    ///     .add_scoped::<WeatherService>();
-    ///
-    /// let scope = sp.scope(scopei![City("Odessa".into()),]);
-    ///
-    /// let s1: &WeatherService = scope.resolve();
-    /// let s2: &WeatherService = scope.resolve();
-    ///
-    /// assert_eq!(s1.city.0, "Odessa".to_string());
-    /// assert_eq!(s1.city, s2.city);
-    /// ```
-    #[inline]
-    pub fn add_scoped_i<T>(self) -> ServiceProvider<H, S, HCons<ScopedInstanceContainer<T>, SI>> {
-        let ServiceProvider { dependencies, .. } = self;
-        ServiceProvider {
-            dependencies,
-            scoped_i: PhantomData,
-            scoped: PhantomData,
-        }
-    }
-
     /// Add dependency with the `Singleton` lifetime. Singleton services will be created only one
-    /// time when it will be called first time. It will be same between different calls in
-    /// `Scope::resolve` and `ServiceProvider::resolve`.
+    /// time when it will be called first time. It will be same between different calls in parent
+    /// and forked `ServiceProvider`
     ///
     /// Can be resolved by reference or by cloning. If you wish to clone this dependency then it
     /// must implement `DependencyClone` trait. For more information see `DependencyClone` trait.
@@ -260,7 +170,7 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     ///
     /// let sp = ServiceProvider::new()
     ///     .add_singleton::<Service>();
-    /// let scope = sp.scope_();
+    /// let scope = sp.fork();
     ///
     /// let s1: &Service = sp.resolve();
     /// let s2: &Service = scope.resolve();
@@ -268,8 +178,28 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     /// assert_eq!(s1.uuid, s2.uuid);
     /// ```
     ///
-    /// Usage by cloning is the same as in `ServiceProvider::add_scoped` method.
-    pub fn add_singleton<T>(self) -> ServiceProvider<HCons<SingletonContainer<T>, H>, S, SI>
+    /// Usage with cloning:
+    ///
+    /// ```
+    /// use teloc::*;
+    /// use uuid::Uuid;
+    /// use std::rc::Rc;
+    ///
+    /// struct Service { uuid: Uuid }
+    /// #[inject]
+    /// impl Service {
+    ///     fn new() -> Self { Self { uuid: Uuid::new_v4() } }
+    /// }
+    ///
+    /// let sp = ServiceProvider::new()
+    ///     .add_singleton::<Rc<Service>>();
+    ///
+    /// let s1: Rc<Service> = sp.resolve();
+    /// let s2: Rc<Service> = sp.resolve();
+    ///
+    /// assert_eq!(s1.uuid, s2.uuid)
+    /// ```
+    pub fn add_singleton<T>(self) -> ServiceProvider<'a, Parent, HCons<SingletonContainer<T>, Deps>>
     where
         SingletonContainer<T>: Init<Data = ()>,
     {
@@ -308,7 +238,10 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     /// assert_eq!(&config_ref.token, s.token);
     /// assert_eq!(&config_ref.ip, s.ip);
     /// ```
-    pub fn add_instance<T>(self, data: T) -> ServiceProvider<HCons<InstanceContainer<T>, H>, S, SI>
+    pub fn add_instance<T>(
+        self,
+        data: T,
+    ) -> ServiceProvider<'a, Parent, HCons<InstanceContainer<T>, Deps>>
     where
         InstanceContainer<T>: Init<Data = T>,
     {
@@ -317,6 +250,8 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
 
     /// Same as `ServiceProvider::add_transient`, but can be used for convert one type to another
     /// when resolving. Can be used for creating `Box<dyn Trait>` instances, for example.
+    ///
+    /// Suffix `_c` means 'convert'.
     ///
     /// Usage:
     /// ```
@@ -358,7 +293,7 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     ///
     /// assert_eq!(controller.number_service.get_num(), 10);
     /// ```
-    pub fn add_transient_c<U, T>(self) -> ContainerTransientAddConvert<T, U, H, S, SI>
+    pub fn add_transient_c<U, T>(self) -> ContainerTransientAddConvert<'a, Parent, T, U, Deps>
     where
         T: Into<U>,
         ConvertContainer<TransientContainer<T>, T, U>: Init<Data = ()>,
@@ -368,45 +303,36 @@ impl<H: HList, S, SI> ServiceProvider<H, S, SI> {
     }
 
     /// Same as `Provider::add_transient_c` but for `Singleton` lifetime.
-    pub fn add_singleton_c<U, T>(self) -> ContainerSingletonAddConvert<T, U, H, S, SI>
+    pub fn add_singleton_c<U, T>(self) -> ContainerSingletonAddConvert<'a, Parent, T, U, Deps>
     where
         T: Into<U>,
         ConvertContainer<SingletonContainer<T>, T, U>: Init<Data = ()>,
-        TransientContainer<T>: Init<Data = ()>,
+        SingletonContainer<T>: Init<Data = ()>,
     {
         self._add::<ConvertContainer<SingletonContainer<T>, T, U>>(())
     }
-}
 
-impl<'a, H, S, SI> ServiceProvider<H, S, SI>
-where
-    S: InitScoped,
-{
-    /// Create `Scope` for working with dependencies with `Scoped` lifetime. You must pass to the
-    /// scope instances that you was added by `ServiceProvider::add_scoped_i` before by `scopei![]`
-    /// macro.
-    pub fn scope(&self, si: SI) -> Scope<Self, S, SI> {
-        Scope::new(self, si)
+    /// Same as `Provider::add_transient_c` but for `Instance` lifetime.
+    pub fn add_instance_c<U, T>(
+        self,
+        instance: T,
+    ) -> ContainerInstanceAddConvert<'a, Parent, T, U, Deps>
+    where
+        T: Into<U>,
+        ConvertContainer<InstanceContainer<T>, T, U>: Init<Data = T>,
+        InstanceContainer<T>: Init<Data = T>,
+    {
+        self._add::<ConvertContainer<InstanceContainer<T>, T, U>>(instance)
     }
 }
 
-impl<'a, H, S> ServiceProvider<H, S, HNil>
-where
-    S: InitScoped,
-{
-    /// Wrapper for `ServiceProvider::scope(self, HNil)`, when you have not scoped instances.
-    pub fn scope_(&self) -> Scope<Self, S, HNil> {
-        self.scope(HNil)
-    }
-}
-
-impl<H, S, SI> ServiceProvider<H, S, SI> {
+impl<'a, Parent, H> ServiceProvider<'a, Parent, H> {
     pub(crate) fn dependencies(&self) -> &H {
         &self.dependencies
     }
 }
 
-impl<H, S, SI, T, Index> Selector<T, Index> for ServiceProvider<H, S, SI>
+impl<'a, Parent, H, T, Index> Selector<T, SelfIndex<Index>> for ServiceProvider<'a, Parent, H>
 where
     H: Selector<T, Index>,
 {
@@ -414,7 +340,22 @@ where
         self.dependencies().get()
     }
 
+    /// NEVER CALL THIS
     fn get_mut(&mut self) -> &mut T {
-        self.dependencies.get_mut()
+        unreachable!()
+    }
+}
+
+impl<'a, Parent, H, T, Index> Selector<T, ParentIndex<Index>> for ServiceProvider<'a, Parent, H>
+where
+    Parent: Selector<T, Index>,
+{
+    fn get(&self) -> &T {
+        self.parent.get()
+    }
+
+    /// NEVER CALL THIS
+    fn get_mut(&mut self) -> &mut T {
+        unreachable!()
     }
 }

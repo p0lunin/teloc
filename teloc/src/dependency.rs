@@ -4,8 +4,8 @@ use std::sync::Arc;
 
 /// Trait is used to working with `Resolver` trait. If you want that your service can be resolved by
 /// `Resolver`, you may implement this trait for your service. There are three ways:
-/// 1. Implement it by yourself. Not recommended for business code, recommended for library code.
-/// 2. Create a constructor and add `#[inject]` macro. Recommended for business code.
+/// 1. Implement it by yourself. Not recommended for production code, recommended for library code.
+/// 2. Create a constructor and add `#[inject]` macro. Recommended for production code.
 /// 3. Derive `Teloc` macro, when all of your fields of structs implement `Dependency`.
 pub trait Dependency<Deps> {
     fn init(deps: Deps) -> Self;

@@ -30,13 +30,12 @@ fn test_lifetimes() {
     let provider = ServiceProvider::new()
         .add_transient::<UUID>()
         .add_transient::<Transient>()
-        .add_scoped::<Scoped>()
         .add_singleton::<Singleton>()
         .add_instance(Instance {
             u: UUID::init(frunk::hlist![]),
         });
 
-    let scope1 = provider.scope(teloc::scopei![]);
+    let scope1 = provider.fork().add_singleton::<Scoped>();
 
     let t1: Transient = scope1.resolve();
     let t1_1: Transient = scope1.resolve();
@@ -45,7 +44,7 @@ fn test_lifetimes() {
     let si1: &Singleton = scope1.resolve();
     let i1: &Instance = scope1.resolve();
 
-    let scope2 = provider.scope(teloc::scopei![]);
+    let scope2 = provider.fork().add_singleton::<Scoped>();
 
     let t2: Transient = scope2.resolve();
     let sc2: &Scoped = scope2.resolve();

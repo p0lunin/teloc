@@ -48,7 +48,7 @@ where
     }
 }
 impl<'a, T, SP, Index, Deps, DepsElems, Indexes>
-    Resolver<'a, TransientContainer<T>, T, SP, (Index, Deps, DepsElems, Indexes)> for SP
+    Resolver<'a, TransientContainer<T>, T, (Index, Deps, DepsElems, Indexes)> for SP
 where
     T: 'a,
     Deps: 'a,
@@ -94,7 +94,7 @@ where
 }
 
 impl<'a, T, SP, Index, Deps, DepsElems, Indexes>
-    Resolver<'a, SingletonContainer<T>, T, SP, (Index, Deps, DepsElems, Indexes)> for SP
+    Resolver<'a, SingletonContainer<T>, T, (Index, Deps, DepsElems, Indexes)> for SP
 where
     SingletonContainer<T>: ResolveContainer<'a, SingletonContainer<T>, Deps, Output = T>,
     T: Dependency<Deps> + 'a,
@@ -131,7 +131,7 @@ where
         ct.0.clone()
     }
 }
-impl<'a, T, SP, Index> Resolver<'a, InstanceContainer<T>, T, SP, Index> for SP
+impl<'a, T, SP, Index> Resolver<'a, InstanceContainer<T>, T, Index> for SP
 where
     T: 'a,
     SP: Selector<InstanceContainer<T>, Index>,
@@ -182,7 +182,7 @@ where
 }
 
 impl<'a, T, SP, Index, Deps, DepsElems, Indexes>
-    Resolver<'a, ByRefSingletonContainer<T>, &'a T, SP, (Index, Deps, DepsElems, Indexes)> for SP
+    Resolver<'a, ByRefSingletonContainer<T>, &'a T, (Index, Deps, DepsElems, Indexes)> for SP
 where
     T: 'a,
     Deps: 'a,
@@ -210,7 +210,7 @@ impl<'a, T> ResolveContainer<'a, InstanceContainer<T>, HNil> for ByRefInstanceCo
         ct.get()
     }
 }
-impl<'a, T, SP, Index> Resolver<'a, ByRefInstanceContainer<'a, T>, &'a T, SP, Index> for SP
+impl<'a, T, SP, Index> Resolver<'a, ByRefInstanceContainer<'a, T>, &'a T, Index> for SP
 where
     SP: Selector<InstanceContainer<T>, Index>,
     ByRefInstanceContainer<'a, T>: ResolveContainer<'a, InstanceContainer<T>, HNil, Output = &'a T>,
@@ -249,7 +249,7 @@ where
     }
 }
 impl<'a, C, CT, T, SP, Index, Deps, DepsElems, Indexes>
-    Resolver<'a, ConvertContainer<C, CT, T>, T, SP, (Index, Deps, DepsElems, Indexes)> for SP
+    Resolver<'a, ConvertContainer<C, CT, T>, T, (Index, Deps, DepsElems, Indexes)> for SP
 where
     T: 'a,
     Deps: 'a,

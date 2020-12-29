@@ -34,18 +34,17 @@
 //!     }
 //! }
 //!
-//! // derive macro can be used when all fields implement `Dependency` trait, but we do not recommend use it in production
-//! // code
+//! // derive macro can be used when all fields implement `Dependency` trait,
+//! // but we do not recommend use it in production code
 //! #[derive(Dependency)]
 //! struct Controller {
 //!     number_service: ConstService,
 //! }
 //!
 //! let container = ServiceProvider::new()
-//!     .add_scoped_i::<i32>()
 //!     .add_transient::<ConstService>()
 //!     .add_transient::<Controller>();
-//! let scope = container.scope(teloc::scopei![10]);
+//! let scope = container.fork().add_instance(10);
 //! let controller: Controller = scope.resolve();
 //! assert_eq!(controller.number_service.number, 10);
 //! ```
@@ -55,46 +54,19 @@
 pub mod container;
 mod dependency;
 pub mod get_dependencies;
+mod index;
+mod lifetime;
 mod resolver;
-pub mod scope;
 mod service_provider;
 
 pub use {
     dependency::Dependency,
     resolver::Resolver,
-    scope::Scope,
     service_provider::ServiceProvider,
     teloc_macros::{inject, Dependency},
 };
 
+#[doc(hidden)]
 pub mod reexport {
-    //! This module is used to reexport some libraries to `teloc-macros`
     pub use {frunk, frunk::Hlist};
-}
-
-/// This macro creates an `HList` with data needed to send to the `Scope` when it init.
-/// Usage:
-/// ```
-/// use teloc::*;
-///
-/// let sp = ServiceProvider::new()
-///     .add_scoped_i::<i32>()
-///     .add_scoped_i::<bool>();
-/// let scope = sp.scope(scopei![false, 10]);
-/// ```
-#[macro_export]
-macro_rules! scopei {
-    [] => { teloc::reexport::frunk::HNil };
-    [$x:expr] => {
-        teloc::reexport::frunk::hlist::h_cons(
-            teloc::container::Init::init($x),
-            teloc::reexport::frunk::HNil
-        )
-    };
-    [$x:expr, $($xs:expr),*] => {
-        teloc::reexport::frunk::hlist::h_cons(
-            teloc::container::Init::init($x),
-            teloc::scopei![$($xs,)*]
-        )
-    }
 }
