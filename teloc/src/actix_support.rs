@@ -1,3 +1,4 @@
+//! Support for `actix-web` crate.
 use crate::container::Container;
 use crate::Resolver;
 use actix_web::dev::*;
@@ -6,6 +7,11 @@ use std::future::Future;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+/// Struct for inject dependencies from `ServiceProvider` to an actix-web handler function.
+///
+/// **IMPORTANT:** dependencies from the `ServiceProvider` must be first in the list of arguments.
+///
+/// For example you can see [example in git repo](https://github.com/p0lunin/teloc/tree/master/examples/actix_example).
 pub struct DIActixHandler<SP, F, Args, Conts, Infers> {
     sp: Arc<SP>,
     f: F,
@@ -13,6 +19,7 @@ pub struct DIActixHandler<SP, F, Args, Conts, Infers> {
 }
 
 impl<SP, F, Args, Conts, Infers> DIActixHandler<SP, F, Args, Conts, Infers> {
+    /// Creates DIActixHandler with specified `ServiceProvider` and actix-web handler function.
     pub fn new(sp: Arc<SP>, f: F) -> Self {
         DIActixHandler {
             sp,
