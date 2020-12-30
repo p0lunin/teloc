@@ -2,4 +2,5 @@
 members = [
     "teloc",
     "teloc_macros",
+    "examples/actix_example",
 ]
