@@ -1,10 +1,12 @@
 use futures_util::lock::{Mutex, MutexGuard};
 use std::sync::Arc;
 
+// Repository stores previous request.
 pub struct Repository {
     data: Mutex<String>,
 }
 
+// #[inject] macro allow to use `Repository` in `ServiceProvider`
 #[teloc::inject]
 impl Repository {
     pub fn new() -> Self {
@@ -24,10 +26,12 @@ impl Repository {
     }
 }
 
+// Service that handles requests.
 pub struct ActixService {
     store: Arc<Repository>,
 }
 
+// #[inject] macro allow to use `ActixService` in `ServiceProvider`
 #[teloc::inject]
 impl ActixService {
     pub fn new(store: Arc<Repository>) -> Self {
