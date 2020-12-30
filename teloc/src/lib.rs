@@ -51,6 +51,8 @@
 
 #![forbid(unsafe_code)]
 
+#[cfg(feature = "actix-support")]
+mod actix_support;
 pub mod container;
 mod dependency;
 pub mod get_dependencies;
@@ -58,6 +60,8 @@ mod index;
 mod lifetime;
 mod resolver;
 mod service_provider;
+#[cfg(feature = "actix-support")]
+pub use actix_support::DIActixHandler;
 
 pub use {
     dependency::Dependency,

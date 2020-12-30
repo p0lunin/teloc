@@ -1,11 +1,9 @@
 mod services;
-mod utils;
 
 use crate::services::{ActixService, Repository};
-use crate::utils::DIActixHandler;
 use actix_web::{web, App, HttpServer};
 use std::sync::Arc;
-use teloc::ServiceProvider;
+use teloc::{DIActixHandler, ServiceProvider};
 
 async fn index(service: Arc<ActixService>, data: web::Json<String>) -> String {
     service.change_and_get_previous(data.0).await

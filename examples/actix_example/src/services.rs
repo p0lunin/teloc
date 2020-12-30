@@ -1,10 +1,5 @@
-use actix_web::dev::{Payload, PayloadStream};
-use actix_web::{Error, FromRequest, HttpRequest};
 use futures_util::lock::{Mutex, MutexGuard};
-use std::cell::{Ref, RefCell};
-use std::marker::PhantomData;
 use std::sync::Arc;
-use teloc::reexport::frunk::path::PathTraverser;
 
 pub struct Repository {
     data: Mutex<String>,
