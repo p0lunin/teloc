@@ -66,7 +66,7 @@ macro_rules! impl_factory_di_args {
             Res: Future<Output = O>,
             O: Responder,
             CreateScope: Fn(ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<InstanceContainer<HttpRequest>, HNil>>) -> ScopeResult + Clone + 'static,
-            ScopeResult: $(for<'a> Resolver<'a, $cont, $arg, $other> +)* 'static,
+            ScopeResult: $(for<'a> Resolver<'a, $arg, $other> +)* 'static,
             $($arg: 'static,)*
             $($cont: Container<$arg> + 'static,)*
             $($other: 'static,)*

@@ -47,12 +47,12 @@ where
         T::init(get_deps())
     }
 }
-impl<'a, T, SP, Index, Deps, DepsElems, Indexes>
-    Resolver<'a, TransientContainer<T>, T, (Index, Deps, DepsElems, Indexes)> for SP
+impl<'a, T, SP, Index, Deps, Infer>
+    Resolver<'a, T, (TransientContainer<T>, Index, Deps, Infer)> for SP
 where
     T: 'a,
     Deps: 'a,
-    SP: Selector<TransientContainer<T>, Index> + GetDependencies<'a, Deps, DepsElems, Indexes> + 'a,
+    SP: Selector<TransientContainer<T>, Index> + GetDependencies<'a, Deps, Infer> + 'a,
     T: Dependency<Deps> + 'a,
     TransientContainer<T>: ResolveContainer<'a, TransientContainer<T>, Deps, Output = T>,
 {
@@ -93,13 +93,13 @@ where
     }
 }
 
-impl<'a, T, SP, Index, Deps, DepsElems, Indexes>
-    Resolver<'a, SingletonContainer<T>, T, (Index, Deps, DepsElems, Indexes)> for SP
+impl<'a, T, SP, Index, Deps, Infer>
+    Resolver<'a, T, (SingletonContainer<T>, Index, Deps, Infer)> for SP
 where
     SingletonContainer<T>: ResolveContainer<'a, SingletonContainer<T>, Deps, Output = T>,
     T: Dependency<Deps> + 'a,
     Deps: 'a,
-    SP: GetDependencies<'a, Deps, DepsElems, Indexes> + Selector<SingletonContainer<T>, Index>,
+    SP: GetDependencies<'a, Deps, Infer> + Selector<SingletonContainer<T>, Index>,
 {
     fn resolve(&'a self) -> T {
         SingletonContainer::resolve_container(self.get(), || self.get_deps())
@@ -131,7 +131,7 @@ where
         ct.0.clone()
     }
 }
-impl<'a, T, SP, Index> Resolver<'a, InstanceContainer<T>, T, Index> for SP
+impl<'a, T, SP, Index> Resolver<'a, T, (InstanceContainer<T>, Index)> for SP
 where
     T: 'a,
     SP: Selector<InstanceContainer<T>, Index>,
@@ -181,12 +181,12 @@ where
     }
 }
 
-impl<'a, T, SP, Index, Deps, DepsElems, Indexes>
-    Resolver<'a, ByRefSingletonContainer<T>, &'a T, (Index, Deps, DepsElems, Indexes)> for SP
+impl<'a, T, SP, Index, Deps, Infer>
+    Resolver<'a, &'a T, (ByRefSingletonContainer<T>, Index, Deps, Infer)> for SP
 where
     T: 'a,
     Deps: 'a,
-    SP: Selector<SingletonContainer<T>, Index> + GetDependencies<'a, Deps, DepsElems, Indexes> + 'a,
+    SP: Selector<SingletonContainer<T>, Index> + GetDependencies<'a, Deps, Infer> + 'a,
     ByRefSingletonContainer<T>: ResolveContainer<'a, SingletonContainer<T>, Deps, Output = &'a T>,
 {
     fn resolve(&'a self) -> &'a T {
@@ -210,7 +210,7 @@ impl<'a, T> ResolveContainer<'a, InstanceContainer<T>, HNil> for ByRefInstanceCo
         ct.get()
     }
 }
-impl<'a, T, SP, Index> Resolver<'a, ByRefInstanceContainer<'a, T>, &'a T, Index> for SP
+impl<'a, T, SP, Index> Resolver<'a, &'a T, (ByRefInstanceContainer<'a, T>, Index)> for SP
 where
     SP: Selector<InstanceContainer<T>, Index>,
     ByRefInstanceContainer<'a, T>: ResolveContainer<'a, InstanceContainer<T>, HNil, Output = &'a T>,
@@ -248,15 +248,15 @@ where
         C::resolve_container(&ct.0, deps).into()
     }
 }
-impl<'a, C, CT, T, SP, Index, Deps, DepsElems, Indexes>
-    Resolver<'a, ConvertContainer<C, CT, T>, T, (Index, Deps, DepsElems, Indexes)> for SP
+impl<'a, C, CT, T, SP, Index, Deps, Infer>
+    Resolver<'a, T, (ConvertContainer<C, CT, T>, Index, Deps, Infer)> for SP
 where
     T: 'a,
     Deps: 'a,
     C: Container<CT> + 'a,
     CT: Into<T> + 'a,
     ConvertContainer<C, CT, T>: ResolveContainer<'a, ConvertContainer<C, CT, T>, Deps, Output = T>,
-    SP: Selector<ConvertContainer<C, CT, T>, Index> + GetDependencies<'a, Deps, DepsElems, Indexes>,
+    SP: Selector<ConvertContainer<C, CT, T>, Index> + GetDependencies<'a, Deps, Infer>,
 {
     fn resolve(&'a self) -> T {
         ConvertContainer::resolve_container(self.get(), || self.get_deps())

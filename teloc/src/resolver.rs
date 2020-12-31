@@ -1,5 +1,3 @@
-use crate::container::Container;
-
 /// This trait is used to resolve some object from service provider. Generic `T` used only to avoid
 /// absence of specialization and for working of type inference. You must implement it yourself
 /// only when you implement your own version of container.
@@ -26,9 +24,9 @@ use crate::container::Container;
 ///
 /// assert_eq!(foo.0, 5)
 /// ```
-pub trait Resolver<'a, T: Container<TE>, TE, Other>
+pub trait Resolver<'a, Item, Infer>
 where
-    TE: 'a,
+    Item: 'a,
 {
-    fn resolve(&'a self) -> TE;
+    fn resolve(&'a self) -> Item;
 }
