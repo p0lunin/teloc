@@ -4,9 +4,9 @@ use crate::container::{
 use crate::index::{ParentIndex, SelfIndex};
 use frunk::hlist::{HList, Selector};
 use frunk::{HCons, HNil};
+use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::ops::Deref;
 
 /// `ServiceProvider` struct is used as an IoC-container in which you declare your dependencies.
 ///

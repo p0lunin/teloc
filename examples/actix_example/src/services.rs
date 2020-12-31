@@ -1,7 +1,7 @@
+use actix_web::http::Method;
+use actix_web::HttpRequest;
 use futures_util::lock::{Mutex, MutexGuard};
 use std::sync::Arc;
-use actix_web::HttpRequest;
-use actix_web::http::Method;
 
 // Repository stores previous request.
 pub struct Repository {
@@ -52,6 +52,9 @@ impl ActixService {
     pub async fn change_and_get_previous(&self, new_data: String) -> String {
         let previous = self.store.get().await.clone();
         self.store.change(new_data).await;
-        format!("Request Method: {}\nPrevious request body: {}\n", self.method, previous)
+        format!(
+            "Request Method: {}\nPrevious request body: {}\n",
+            self.method, previous
+        )
     }
 }

@@ -47,8 +47,8 @@ where
         T::init(get_deps())
     }
 }
-impl<'a, T, SP, Index, Deps, Infer>
-    Resolver<'a, T, (TransientContainer<T>, Index, Deps, Infer)> for SP
+impl<'a, T, SP, Index, Deps, Infer> Resolver<'a, T, (TransientContainer<T>, Index, Deps, Infer)>
+    for SP
 where
     T: 'a,
     Deps: 'a,
@@ -93,8 +93,8 @@ where
     }
 }
 
-impl<'a, T, SP, Index, Deps, Infer>
-    Resolver<'a, T, (SingletonContainer<T>, Index, Deps, Infer)> for SP
+impl<'a, T, SP, Index, Deps, Infer> Resolver<'a, T, (SingletonContainer<T>, Index, Deps, Infer)>
+    for SP
 where
     SingletonContainer<T>: ResolveContainer<'a, SingletonContainer<T>, Deps, Output = T>,
     T: Dependency<Deps> + 'a,

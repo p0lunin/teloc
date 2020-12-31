@@ -1,14 +1,14 @@
 //! Support for `actix-web` crate.
-use crate::{ServiceProvider, Resolver, container::InstanceContainer};
+use crate::dependency::DependencyClone;
+use crate::{container::InstanceContainer, Resolver, ServiceProvider};
 use actix_web::dev::*;
 use actix_web::HttpRequest;
 use actix_web::Responder;
-use frunk::{HNil, HCons};
+use frunk::{HCons, HNil};
 use std::future::Future;
 use std::marker::PhantomData;
-use std::sync::Arc;
 use std::pin::Pin;
-use crate::dependency::DependencyClone;
+use std::sync::Arc;
 
 /// Struct for inject dependencies from `ServiceProvider` to an actix-web handler function.
 ///
@@ -22,7 +22,9 @@ pub struct DIActixHandler<SP, CreateScope, F, ScopeResult, Args, Infers> {
     phantom: PhantomData<(ScopeResult, Args, Infers)>,
 }
 
-impl<ParSP, DepsSP, CreateScope, F, ScopeResult, Args, Infers> DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, Args, Infers> {
+impl<ParSP, DepsSP, CreateScope, F, ScopeResult, Args, Infers>
+    DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, Args, Infers>
+{
     /// Creates DIActixHandler with specified `ServiceProvider` and actix-web handler function.
     pub fn new(sp: Arc<ServiceProvider<ParSP, DepsSP>>, create_scope: CreateScope, f: F) -> Self {
         DIActixHandler {
@@ -34,7 +36,8 @@ impl<ParSP, DepsSP, CreateScope, F, ScopeResult, Args, Infers> DIActixHandler<Se
     }
 }
 
-impl<SP, CreateScope, F, ScopeResult, Args, Infers> Clone for DIActixHandler<SP, CreateScope, F, ScopeResult, Args, Infers>
+impl<SP, CreateScope, F, ScopeResult, Args, Infers> Clone
+    for DIActixHandler<SP, CreateScope, F, ScopeResult, Args, Infers>
 where
     CreateScope: Clone,
     F: Clone,
@@ -49,7 +52,7 @@ where
     }
 }
 
-impl DependencyClone for HttpRequest { }
+impl DependencyClone for HttpRequest {}
 
 macro_rules! impl_factory_di_args {
     (($($num:tt, $param:ident),*), $($arg:ident, $other:ident),*) => {
