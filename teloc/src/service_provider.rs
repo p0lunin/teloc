@@ -4,6 +4,9 @@ use crate::container::{
 use crate::index::{ParentIndex, SelfIndex};
 use frunk::hlist::{HList, Selector};
 use frunk::{HCons, HNil};
+use std::rc::Rc;
+use std::sync::Arc;
+use std::ops::Deref;
 
 /// `ServiceProvider` struct is used as an IoC-container in which you declare your dependencies.
 ///
@@ -44,52 +47,67 @@ use frunk::{HCons, HNil};
 /// let controller: Controller = scope.resolve();
 /// assert_eq!(controller.number_service.number, 10);
 /// ```
-pub struct ServiceProvider<'a, Parent, Dependencies> {
-    parent: &'a Parent,
+pub struct ServiceProvider<Parent, Dependencies> {
+    parent: Parent,
     dependencies: Dependencies,
 }
 
 pub struct EmptyServiceProvider;
 
-impl ServiceProvider<'static, EmptyServiceProvider, HNil> {
+impl ServiceProvider<EmptyServiceProvider, HNil> {
     /// Create an empty instance of `ServiceProvider`
     pub fn new() -> Self {
         ServiceProvider {
-            parent: &EmptyServiceProvider,
+            parent: EmptyServiceProvider,
             dependencies: HNil,
         }
     }
 }
 
-impl Default for ServiceProvider<'static, EmptyServiceProvider, HNil> {
+impl Default for ServiceProvider<EmptyServiceProvider, HNil> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl<'a, Parent, Deps> ServiceProvider<'a, Parent, Deps> {
+impl<Parent, Deps> ServiceProvider<Parent, Deps> {
     /// Forking `ServiceProvider` creates a new `ServiceProvider` with reference to the parent.
     /// `resolve` method on forked `ServiceProvider` will find dependencies form self and parent.
-    pub fn fork<'b>(&'b self) -> ServiceProvider<'b, Self, HNil>
-    where
-        'a: 'b,
-    {
+    pub fn fork(&self) -> ServiceProvider<&Self, HNil> {
         ServiceProvider {
             parent: self,
+            dependencies: HNil,
+        }
+    }
+
+    /// Forking `ServiceProvider` creates a new `ServiceProvider` with reference to the parent.
+    /// `resolve` method on forked `ServiceProvider` will find dependencies form self and parent.
+    pub fn fork_rc(self: &Rc<ServiceProvider<Parent, Deps>>) -> ServiceProvider<Rc<Self>, HNil> {
+        ServiceProvider {
+            parent: self.clone(),
+            dependencies: HNil,
+        }
+    }
+
+    /// Forking `ServiceProvider` creates a new `ServiceProvider` with reference to the parent.
+    /// `resolve` method on forked `ServiceProvider` will find dependencies form self and parent.
+    pub fn fork_arc(self: &Arc<ServiceProvider<Parent, Deps>>) -> ServiceProvider<Arc<Self>, HNil> {
+        ServiceProvider {
+            parent: self.clone(),
             dependencies: HNil,
         }
     }
 }
 
 // Clippy requires to create type aliases
-type ContainerTransientAddConvert<'a, P, T, U, H> =
-    ServiceProvider<'a, P, HCons<ConvertContainer<TransientContainer<T>, T, U>, H>>;
-type ContainerSingletonAddConvert<'a, P, T, U, H> =
-    ServiceProvider<'a, P, HCons<ConvertContainer<SingletonContainer<T>, T, U>, H>>;
-type ContainerInstanceAddConvert<'a, P, T, U, H> =
-    ServiceProvider<'a, P, HCons<ConvertContainer<InstanceContainer<T>, T, U>, H>>;
+type ContainerTransientAddConvert<P, T, U, H> =
+    ServiceProvider<P, HCons<ConvertContainer<TransientContainer<T>, T, U>, H>>;
+type ContainerSingletonAddConvert<P, T, U, H> =
+    ServiceProvider<P, HCons<ConvertContainer<SingletonContainer<T>, T, U>, H>>;
+type ContainerInstanceAddConvert<P, T, U, H> =
+    ServiceProvider<P, HCons<ConvertContainer<InstanceContainer<T>, T, U>, H>>;
 
-impl<'a, Parent, Deps: HList> ServiceProvider<'a, Parent, Deps> {
+impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
     /// Method used primary for internal actions. In common usage you don't need to use it. It add dependencies to the store. You need
     /// to put in first generic parameter some `ContainerElem` type.
     /// Usage:
@@ -108,7 +126,7 @@ impl<'a, Parent, Deps: HList> ServiceProvider<'a, Parent, Deps> {
     pub fn _add<Container: Init>(
         self,
         data: Container::Data,
-    ) -> ServiceProvider<'a, Parent, HCons<Container, Deps>> {
+    ) -> ServiceProvider<Parent, HCons<Container, Deps>> {
         let ServiceProvider {
             parent,
             dependencies,
@@ -143,7 +161,7 @@ impl<'a, Parent, Deps: HList> ServiceProvider<'a, Parent, Deps> {
     ///
     /// assert_ne!(s1.uuid, s2.uuid);
     /// ```
-    pub fn add_transient<T>(self) -> ServiceProvider<'a, Parent, HCons<TransientContainer<T>, Deps>>
+    pub fn add_transient<T>(self) -> ServiceProvider<Parent, HCons<TransientContainer<T>, Deps>>
     where
         TransientContainer<T>: Init<Data = ()>,
     {
@@ -199,7 +217,7 @@ impl<'a, Parent, Deps: HList> ServiceProvider<'a, Parent, Deps> {
     ///
     /// assert_eq!(s1.uuid, s2.uuid)
     /// ```
-    pub fn add_singleton<T>(self) -> ServiceProvider<'a, Parent, HCons<SingletonContainer<T>, Deps>>
+    pub fn add_singleton<T>(self) -> ServiceProvider<Parent, HCons<SingletonContainer<T>, Deps>>
     where
         SingletonContainer<T>: Init<Data = ()>,
     {
@@ -241,7 +259,7 @@ impl<'a, Parent, Deps: HList> ServiceProvider<'a, Parent, Deps> {
     pub fn add_instance<T>(
         self,
         data: T,
-    ) -> ServiceProvider<'a, Parent, HCons<InstanceContainer<T>, Deps>>
+    ) -> ServiceProvider<Parent, HCons<InstanceContainer<T>, Deps>>
     where
         InstanceContainer<T>: Init<Data = T>,
     {
@@ -293,7 +311,7 @@ impl<'a, Parent, Deps: HList> ServiceProvider<'a, Parent, Deps> {
     ///
     /// assert_eq!(controller.number_service.get_num(), 10);
     /// ```
-    pub fn add_transient_c<U, T>(self) -> ContainerTransientAddConvert<'a, Parent, T, U, Deps>
+    pub fn add_transient_c<U, T>(self) -> ContainerTransientAddConvert<Parent, T, U, Deps>
     where
         T: Into<U>,
         ConvertContainer<TransientContainer<T>, T, U>: Init<Data = ()>,
@@ -303,7 +321,7 @@ impl<'a, Parent, Deps: HList> ServiceProvider<'a, Parent, Deps> {
     }
 
     /// Same as `Provider::add_transient_c` but for `Singleton` lifetime.
-    pub fn add_singleton_c<U, T>(self) -> ContainerSingletonAddConvert<'a, Parent, T, U, Deps>
+    pub fn add_singleton_c<U, T>(self) -> ContainerSingletonAddConvert<Parent, T, U, Deps>
     where
         T: Into<U>,
         ConvertContainer<SingletonContainer<T>, T, U>: Init<Data = ()>,
@@ -316,7 +334,7 @@ impl<'a, Parent, Deps: HList> ServiceProvider<'a, Parent, Deps> {
     pub fn add_instance_c<U, T>(
         self,
         instance: T,
-    ) -> ContainerInstanceAddConvert<'a, Parent, T, U, Deps>
+    ) -> ContainerInstanceAddConvert<Parent, T, U, Deps>
     where
         T: Into<U>,
         ConvertContainer<InstanceContainer<T>, T, U>: Init<Data = T>,
@@ -326,13 +344,13 @@ impl<'a, Parent, Deps: HList> ServiceProvider<'a, Parent, Deps> {
     }
 }
 
-impl<'a, Parent, H> ServiceProvider<'a, Parent, H> {
+impl<'a, Parent, H> ServiceProvider<Parent, H> {
     pub(crate) fn dependencies(&self) -> &H {
         &self.dependencies
     }
 }
 
-impl<'a, Parent, H, T, Index> Selector<T, SelfIndex<Index>> for ServiceProvider<'a, Parent, H>
+impl<Parent, H, T, Index> Selector<T, SelfIndex<Index>> for ServiceProvider<Parent, H>
 where
     H: Selector<T, Index>,
 {
@@ -346,12 +364,13 @@ where
     }
 }
 
-impl<'a, Parent, H, T, Index> Selector<T, ParentIndex<Index>> for ServiceProvider<'a, Parent, H>
+impl<Parent, H, T, Index> Selector<T, ParentIndex<Index>> for ServiceProvider<Parent, H>
 where
-    Parent: Selector<T, Index>,
+    Parent: Deref,
+    Parent::Target: Selector<T, Index>,
 {
     fn get(&self) -> &T {
-        self.parent.get()
+        self.parent.deref().get()
     }
 
     /// NEVER CALL THIS

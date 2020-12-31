@@ -1,8 +1,10 @@
 //! Support for `actix-web` crate.
 use crate::container::Container;
-use crate::Resolver;
+use crate::{ServiceProvider, Resolver, container::InstanceContainer};
 use actix_web::dev::*;
+use actix_web::HttpRequest;
 use actix_web::Responder;
+use frunk::{HNil, HCons};
 use std::future::Future;
 use std::marker::PhantomData;
 use std::sync::Arc;
@@ -12,30 +14,39 @@ use std::sync::Arc;
 /// **IMPORTANT:** dependencies from the `ServiceProvider` must be first in the list of arguments.
 ///
 /// For example you can see [example in git repo](https://github.com/p0lunin/teloc/tree/master/examples/actix_example).
-pub struct DIActixHandler<SP, F, Args, Conts, Infers> {
+pub struct DIActixHandler<SP, CreateScope, F, ScopeResult, Conts, Infers> {
     sp: Arc<SP>,
+    create_scope: CreateScope,
     f: F,
-    phantom: PhantomData<(Args, Conts, Infers)>,
+    phantom: PhantomData<(ScopeResult, Conts, Infers)>,
 }
 
-impl<SP, F, Args, Conts, Infers> DIActixHandler<SP, F, Args, Conts, Infers> {
+impl<ParSP, DepsSP, CreateScope, F, ScopeResult, Conts, Infers> DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, Conts, Infers>
+where
+    CreateScope: Fn(&ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<InstanceContainer<HttpRequest>, HNil>>) -> ScopeResult + Clone + 'static,
+    Conts: 'static,
+    Infers: 'static,
+{
     /// Creates DIActixHandler with specified `ServiceProvider` and actix-web handler function.
-    pub fn new(sp: Arc<SP>, f: F) -> Self {
+    pub fn new(sp: Arc<ServiceProvider<ParSP, DepsSP>>, create_scope: CreateScope, f: F) -> Self {
         DIActixHandler {
             sp,
+            create_scope,
             f,
             phantom: PhantomData,
         }
     }
 }
 
-impl<SP, F, Args, Conts, Infers> Clone for DIActixHandler<SP, F, Args, Conts, Infers>
+impl<SP, CreateScope, F, ScopeResult, Conts, Infers> Clone for DIActixHandler<SP, CreateScope, F, ScopeResult, Conts, Infers>
 where
+    CreateScope: Clone,
     F: Clone,
 {
     fn clone(&self) -> Self {
         Self {
             sp: self.sp.clone(),
+            create_scope: self.create_scope.clone(),
             f: self.f.clone(),
             phantom: PhantomData,
         }
@@ -44,25 +55,30 @@ where
 
 macro_rules! impl_factory_di_args {
     (($($num:tt, $param:ident),*), $($arg:ident, $cont:ident, $other:ident),*) => {
-        impl<$($param,)* SP, F, Res, O, $($arg, $cont, $other),*> Factory<($($param,)*), Res, O>
-            for DIActixHandler<SP, F, ($($param,)*), ($(($arg, $cont),)*), ($($other,)*)>
+        impl<$($param,)* ParSP, DepsSP, CreateScope, ScopeResult, F, Res, O, $($arg, $cont, $other),*> Factory<(HttpRequest, $($param,)*), Res, O>
+            for DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, ($(($arg, $cont),)*), ($($other,)*)>
         where
             $($param: 'static,)*
-            SP: 'static,
             F: 'static,
+            ParSP: 'static,
+            DepsSP: 'static,
             F: Clone + Fn($($arg,)* $($param),*) -> Res,
             Res: Future<Output = O>,
             O: Responder,
-            SP: $(for<'a> Resolver<'a, $cont, $arg, $other> +)*,
+            CreateScope: Fn(ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<InstanceContainer<HttpRequest>, HNil>>) -> ScopeResult + Clone + 'static,
+            ScopeResult: $(for<'a> Resolver<'a, $cont, $arg, $other> +)* 'static,
             $($arg: 'static,)*
             $($cont: Container<$arg> + 'static,)*
             $($other: 'static,)*
         {
             #[allow(non_snake_case)]
             #[allow(unused_variables)]
-            fn call(&self, data: ($($param,)*)) -> Res {
-                $(let $arg = self.sp.resolve();)*
-                $(let $param = data.$num;)*
+            fn call(&self, data: (HttpRequest, $($param,)*)) -> Res {
+                let (req, $($param,)*) = data;
+                let forked = self.sp.fork_arc().add_instance(req);
+                let scope = (self.create_scope)(forked);
+
+                $(let $arg = scope.resolve();)*
                 (self.f)($($arg,)* $($param),*)
             }
         }
@@ -83,7 +99,7 @@ macro_rules! impl_factory_di {
     };
 }
 
-impl_factory_di!();
+//impl_factory_di!();
 impl_factory_di!(0, B1);
 impl_factory_di!(0, B1, 1, B2);
 impl_factory_di!(0, B1, 1, B2, 2, B3);

@@ -23,7 +23,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         // `DIActixHandler` gives as input a `ServiceProvider` and a handler function and inject
         // dependencies from the start args in function.
-        App::new().route("/", web::get().to(DIActixHandler::new(sp.clone(), index)))
+        App::new().route("/", web::get().to(DIActixHandler::new(sp.clone(), std::convert::identity, index)))
     })
     .bind("127.0.0.1:8080")?
     .run()

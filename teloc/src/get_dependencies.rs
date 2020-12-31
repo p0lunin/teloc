@@ -14,15 +14,15 @@ mod impls {
     use frunk::hlist::HList;
     use frunk::{HCons, HNil};
 
-    impl<'a, 'b: 'a, T, TRest, CE, CERest, I, IR, Parent, Deps>
+    impl<'a, T, TRest, CE, CERest, I, IR, Parent, Deps>
         GetDependencies<'a, HCons<T, TRest>, HCons<CE, CERest>, HCons<I, IR>>
-        for ServiceProvider<'b, Parent, Deps>
+        for ServiceProvider<Parent, Deps>
     where
         CE: Container<T>,
         TRest: HList,
         TRest: 'a,
         T: 'a,
-        ServiceProvider<'b, Parent, Deps>:
+        ServiceProvider<Parent, Deps>:
             Resolver<'a, CE, T, I> + GetDependencies<'a, TRest, CERest, IR>,
     {
         fn get_deps(&'a self) -> HCons<T, TRest> {
