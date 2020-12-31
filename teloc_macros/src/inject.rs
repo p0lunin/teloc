@@ -38,8 +38,8 @@ pub fn expand(input: &InjectInput) -> Result<TokenStream, TokenStream> {
     let names = ident_generator(dependencies.len());
 
     let init = match input {
-        InjectInput::Impl(_, _) => quote! { <#struct_ty>::#fn_ident(#(#names)*) },
-        InjectInput::Function(_) => quote! { #fn_ident(#(#names)*) },
+        InjectInput::Impl(_, _) => quote! { <#struct_ty>::#fn_ident(#(#names),*) },
+        InjectInput::Function(_) => quote! { #fn_ident(#(#names),*) },
     };
 
     Ok(quote! {

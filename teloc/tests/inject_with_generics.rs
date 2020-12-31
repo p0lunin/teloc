@@ -9,7 +9,7 @@ struct WeatherService<'a> {
 
 #[inject]
 impl<'a> WeatherService<'a> {
-    fn new(_city: &'a City) -> Self {
+    fn new(_city: &'a City, _foo: i32) -> Self {
         Self { _city }
     }
 }
