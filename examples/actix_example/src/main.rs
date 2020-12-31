@@ -10,7 +10,7 @@ async fn index(service: Arc<ActixService>, data: web::Json<String>) -> String {
 }
 
 #[actix_web::main]
-async fn main() {
+async fn main() -> std::io::Result<()> {
     // Create the `ServiceProvider` struct that store itself all dependencies.
     let sp = ServiceProvider::new()
         // Add dependency with a `Singleton` lifetime. More about lifetimes see in README.md.

@@ -1,5 +1,4 @@
 //! Support for `actix-web` crate.
-use crate::container::Container;
 use crate::{ServiceProvider, Resolver, container::InstanceContainer};
 use actix_web::dev::*;
 use actix_web::HttpRequest;
@@ -54,9 +53,9 @@ where
 }
 
 macro_rules! impl_factory_di_args {
-    (($($num:tt, $param:ident),*), $($arg:ident, $cont:ident, $other:ident),*) => {
-        impl<$($param,)* ParSP, DepsSP, CreateScope, ScopeResult, F, Res, O, $($arg, $cont, $other),*> Factory<(HttpRequest, $($param,)*), Res, O>
-            for DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, ($(($arg, $cont),)*), ($($other,)*)>
+    (($($num:tt, $param:ident),*), $($arg:ident, $other:ident),*) => {
+        impl<$($param,)* ParSP, DepsSP, CreateScope, ScopeResult, F, Res, O, $($arg, $other),*> Factory<(HttpRequest, $($param,)*), Res, O>
+            for DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, ($($arg,)*), ($($other,)*)>
         where
             $($param: 'static,)*
             F: 'static,
@@ -68,7 +67,6 @@ macro_rules! impl_factory_di_args {
             CreateScope: Fn(ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<InstanceContainer<HttpRequest>, HNil>>) -> ScopeResult + Clone + 'static,
             ScopeResult: $(for<'a> Resolver<'a, $arg, $other> +)* 'static,
             $($arg: 'static,)*
-            $($cont: Container<$arg> + 'static,)*
             $($other: 'static,)*
         {
             #[allow(non_snake_case)]
@@ -87,15 +85,15 @@ macro_rules! impl_factory_di_args {
 
 macro_rules! impl_factory_di {
     ($($num:tt, $param:ident),*) => {
-        impl_factory_di_args!(($($num, $param),*), A1, C1, O1);
-        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2);
-        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3);
-        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3, A4, C4, O4);
-        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3, A4, C4, O4, A5, C5, O5);
-        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3, A4, C4, O4, A5, C5, O5, A6, C6, O6);
-        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3, A4, C4, O4, A5, C5, O5, A6, C6, O6, A7, C7, O7);
-        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3, A4, C4, O4, A5, C5, O5, A6, C6, O6, A7, C7, O7, A8, C8, O8);
-        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3, A4, C4, O4, A5, C5, O5, A6, C6, O6, A7, C7, O7, A8, C8, O8, A9, C9, O9);
+        impl_factory_di_args!(($($num, $param),*), A1, O1);
+        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2);
+        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3);
+        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3, A4, O4);
+        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3, A4, O4, A5, O5);
+        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3, A4, O4, A5, O5, A6, O6);
+        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3, A4, O4, A5, O5, A6, O6, A7, O7);
+        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3, A4, O4, A5, O5, A6, O6, A7, O7, A8, O8);
+        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3, A4, O4, A5, O5, A6, O6, A7, O7, A8, O8, A9, O9);
     };
 }
 
