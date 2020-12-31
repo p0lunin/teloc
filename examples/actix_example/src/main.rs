@@ -5,10 +5,14 @@ use actix_web::{web, App, HttpServer};
 use std::sync::Arc;
 use teloc::{DIActixHandler, ServiceProvider};
 
-async fn index(service: Arc<ActixService>, data: web::Json<String>) -> String {
-    service.change_and_get_previous(data.0).await
+async fn index(service: Arc<ActixService>, data: String) -> String {
+    service.change_and_get_previous(data).await
 }
 
+// For tests you can use curl:
+// ```
+// curl --header "Content-Type: application/json" --data '{"some":"json"}' "127.0.0.1:8080"
+// ```
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     // Create the `ServiceProvider` struct that store itself all dependencies.
@@ -23,7 +27,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(move || {
         // `DIActixHandler` gives as input a `ServiceProvider` and a handler function and inject
         // dependencies from the start args in function.
-        App::new().route("/", web::get().to(DIActixHandler::new(sp.clone(), std::convert::identity, index)))
+        App::new().route("/", web::post().to(DIActixHandler::new(sp.clone(), |s| s, index)))
     })
     .bind("127.0.0.1:8080")?
     .run()

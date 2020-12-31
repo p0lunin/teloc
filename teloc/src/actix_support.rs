@@ -7,25 +7,22 @@ use frunk::{HNil, HCons};
 use std::future::Future;
 use std::marker::PhantomData;
 use std::sync::Arc;
+use std::pin::Pin;
+use crate::dependency::DependencyClone;
 
 /// Struct for inject dependencies from `ServiceProvider` to an actix-web handler function.
 ///
 /// **IMPORTANT:** dependencies from the `ServiceProvider` must be first in the list of arguments.
 ///
 /// For example you can see [example in git repo](https://github.com/p0lunin/teloc/tree/master/examples/actix_example).
-pub struct DIActixHandler<SP, CreateScope, F, ScopeResult, Conts, Infers> {
+pub struct DIActixHandler<SP, CreateScope, F, ScopeResult, Args, Infers> {
     sp: Arc<SP>,
     create_scope: CreateScope,
     f: F,
-    phantom: PhantomData<(ScopeResult, Conts, Infers)>,
+    phantom: PhantomData<(ScopeResult, Args, Infers)>,
 }
 
-impl<ParSP, DepsSP, CreateScope, F, ScopeResult, Conts, Infers> DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, Conts, Infers>
-where
-    CreateScope: Fn(&ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<InstanceContainer<HttpRequest>, HNil>>) -> ScopeResult + Clone + 'static,
-    Conts: 'static,
-    Infers: 'static,
-{
+impl<ParSP, DepsSP, CreateScope, F, ScopeResult, Args, Infers> DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, Args, Infers> {
     /// Creates DIActixHandler with specified `ServiceProvider` and actix-web handler function.
     pub fn new(sp: Arc<ServiceProvider<ParSP, DepsSP>>, create_scope: CreateScope, f: F) -> Self {
         DIActixHandler {
@@ -37,7 +34,7 @@ where
     }
 }
 
-impl<SP, CreateScope, F, ScopeResult, Conts, Infers> Clone for DIActixHandler<SP, CreateScope, F, ScopeResult, Conts, Infers>
+impl<SP, CreateScope, F, ScopeResult, Args, Infers> Clone for DIActixHandler<SP, CreateScope, F, ScopeResult, Args, Infers>
 where
     CreateScope: Clone,
     F: Clone,
@@ -52,9 +49,11 @@ where
     }
 }
 
+impl DependencyClone for HttpRequest { }
+
 macro_rules! impl_factory_di_args {
     (($($num:tt, $param:ident),*), $($arg:ident, $other:ident),*) => {
-        impl<$($param,)* ParSP, DepsSP, CreateScope, ScopeResult, F, Res, O, $($arg, $other),*> Factory<(HttpRequest, $($param,)*), Res, O>
+        impl<$($param,)* ParSP, DepsSP, CreateScope, ScopeResult, F, Res, $($arg, $other),*> Factory<(HttpRequest, $($param,)*), Pin<Box<dyn Future<Output = Res::Output> + 'static>>, Res::Output>
             for DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, ($($arg,)*), ($($other,)*)>
         where
             $($param: 'static,)*
@@ -62,8 +61,8 @@ macro_rules! impl_factory_di_args {
             ParSP: 'static,
             DepsSP: 'static,
             F: Clone + Fn($($arg,)* $($param),*) -> Res,
-            Res: Future<Output = O>,
-            O: Responder,
+            Res: Future,
+            Res::Output: Responder,
             CreateScope: Fn(ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<InstanceContainer<HttpRequest>, HNil>>) -> ScopeResult + Clone + 'static,
             ScopeResult: $(for<'a> Resolver<'a, $arg, $other> +)* 'static,
             $($arg: 'static,)*
@@ -71,13 +70,15 @@ macro_rules! impl_factory_di_args {
         {
             #[allow(non_snake_case)]
             #[allow(unused_variables)]
-            fn call(&self, data: (HttpRequest, $($param,)*)) -> Res {
+            fn call(&self, data: (HttpRequest, $($param,)*)) -> Pin<Box<dyn Future<Output = Res::Output> + 'static>> {
                 let (req, $($param,)*) = data;
                 let forked = self.sp.fork_arc().add_instance(req);
                 let scope = (self.create_scope)(forked);
-
-                $(let $arg = scope.resolve();)*
-                (self.f)($($arg,)* $($param),*)
+                let f = self.f.clone();
+                Box::pin(async move {
+                    $(let $arg = scope.resolve();)*
+                    (f)($($arg,)* $($param),*).await
+                })
             }
         }
     }
