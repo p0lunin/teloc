@@ -2,7 +2,7 @@
 use crate::dependency::DependencyClone;
 use crate::{container::InstanceContainer, Resolver, ServiceProvider};
 use actix_web::dev::*;
-use actix_web::HttpRequest;
+use actix_web::{HttpRequest, FromRequest};
 use actix_web::Responder;
 use frunk::{HCons, HNil};
 use std::future::Future;
@@ -24,6 +24,8 @@ pub struct DIActixHandler<SP, CreateScope, F, ScopeResult, Args, Infers> {
 
 impl<ParSP, DepsSP, CreateScope, F, ScopeResult, Args, Infers>
     DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, Args, Infers>
+where
+    CreateScope: Fn(ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<InstanceContainer<HttpRequest>, HNil>>) -> ScopeResult + Clone + 'static,
 {
     /// Creates DIActixHandler with specified `ServiceProvider` and actix-web handler function.
     pub fn new(sp: Arc<ServiceProvider<ParSP, DepsSP>>, create_scope: CreateScope, f: F) -> Self {
@@ -59,7 +61,8 @@ macro_rules! impl_factory_di_args {
         impl<$($param,)* ParSP, DepsSP, CreateScope, ScopeResult, F, Res, $($arg, $other),*> Factory<(HttpRequest, $($param,)*), Pin<Box<dyn Future<Output = Res::Output> + 'static>>, Res::Output>
             for DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, ($($arg,)*), ($($other,)*)>
         where
-            $($param: 'static,)*
+            //(HttpRequest, $($param,)*): FromRequest,
+            $($param: FromRequest + 'static,)*
             F: 'static,
             ParSP: 'static,
             DepsSP: 'static,
@@ -89,6 +92,7 @@ macro_rules! impl_factory_di_args {
 
 macro_rules! impl_factory_di {
     ($($num:tt, $param:ident),*) => {
+        impl_factory_di_args!(($($num, $param),*),);
         impl_factory_di_args!(($($num, $param),*), A1, O1);
         impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2);
         impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3);
@@ -101,7 +105,7 @@ macro_rules! impl_factory_di {
     };
 }
 
-//impl_factory_di!();
+impl_factory_di!();
 impl_factory_di!(0, B1);
 impl_factory_di!(0, B1, 1, B2);
 impl_factory_di!(0, B1, 1, B2, 2, B3);
