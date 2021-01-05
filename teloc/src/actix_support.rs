@@ -55,8 +55,8 @@ where
             HCons<InstanceContainer<HttpRequest>, HNil>,
         >,
     ) -> ScopeResult
-    + Clone
-    + 'static,
+        + Clone
+        + 'static,
 {
     /// Creates DIActixHandler with specified `ServiceProvider`, scope factory and actix-web handler function.
     ///
