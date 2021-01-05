@@ -25,11 +25,21 @@ async fn main() -> std::io::Result<()> {
     let sp = Arc::new(sp);
 
     HttpServer::new(move || {
-        // `DIActixHandler` gives as input a `ServiceProvider` and a handler function and inject
-        // dependencies from the start args in function.
         App::new().route(
             "/",
-            web::post().to(DIActixHandler::new(sp.clone(), |s| s, index)),
+            web::post().to(
+                // `DIActixHandler` gives as input a `ServiceProvider` and a handler function and inject
+                // dependencies from the start args in function.
+                DIActixHandler::new(
+                    // Global `ServiceProvider`.
+                    sp.clone(),
+                    // Scope factory that can add scope instances that will be the same between different
+                    // dependencies in one scope.
+                    |s| s,
+                    // Function that will be called for each `HttpRequest`.
+                    index
+                )
+            ),
         )
     })
     .bind("127.0.0.1:8080")?
