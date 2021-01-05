@@ -22,7 +22,7 @@ impl Repository {
         *self.data.lock().await = new_data;
     }
 
-    pub async fn get<'a: 'b, 'b>(&'a self) -> MutexGuard<'b, String> {
+    pub async fn get(&self) -> MutexGuard<String> {
         self.data.lock().await
     }
 }
