@@ -49,7 +49,7 @@
 //! assert_eq!(controller.number_service.number, 10);
 //! ```
 
-#![forbid(unsafe_code)]
+#![deny(unsafe_code)]
 
 #[cfg(feature = "actix-support")]
 mod actix_support;

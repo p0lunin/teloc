@@ -24,9 +24,6 @@
 ///
 /// assert_eq!(foo.0, 5)
 /// ```
-pub trait Resolver<'a, Item, Infer>
-where
-    Item: 'a,
-{
+pub trait Resolver<'a, Item, Infer> {
     fn resolve(&'a self) -> Item;
 }

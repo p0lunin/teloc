@@ -1,5 +1,4 @@
 use actix_web::http::Method;
-use actix_web::HttpRequest;
 use futures_util::lock::{Mutex, MutexGuard};
 use std::sync::Arc;
 
@@ -37,8 +36,8 @@ pub struct ActixService {
 // #[inject] macro allow to use `ActixService` in `ServiceProvider`
 #[teloc::inject]
 impl ActixService {
-    pub fn inject(store: Arc<Repository>, req: HttpRequest) -> Self {
-        Self::new(store, req.method().clone())
+    pub fn inject(store: Arc<Repository>, method: &Method) -> Self {
+        Self::new(store, method.clone())
     }
 }
 
