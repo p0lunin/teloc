@@ -4,7 +4,8 @@
     <img src="https://github.com/teloxide/teloxide/workflows/Continuous%20integration/badge.svg">
   </a>
 </div>
-Teloc is simple, compile-time DI framework for Rust.
+Teloc is simple, compile-time DI framework for Rust inspired by 
+[C# Dependency Injection Framework](https://docs.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection?view=aspnetcore-5.0).
 
 ## What is DI?
 [Link to Wikipedia](https://en.wikipedia.org/wiki/Dependency_injection)
@@ -23,20 +24,22 @@ dependencies or lifetime of dependency does not correspondence to requester. If 
 compile-time resolving of dependencies, so you don't worry about overhead in runtime.
 - **Simple API** - teloc provides you a simple API with only one struct and one attribute macro needed for working with
 library.
+- **Integration with existing enviroment** - teloc can be used with any existing frameworks like actix-web, warp, rocket. 
+Now there is only support for actix-web as you can see [in the example](/examples/actix_example).
 
 ## How to use
-There are 2 types can be provider of services: `ServiceProvider` and `Scope`. First used as store for dependencies with
-`Instance` and `Singleton` lifetimes, and for declaring all dependencies using `.add_*()` methods. `Scope` can be 
-created from `ServiceProvider` object by calling method `ServiceProvider::scope`.
+There are one type can be provider of services: `ServiceProvider`. It used as store for dependencies with
+`Instance` and `Singleton` lifetimes, and for declaring all dependencies using `.add_*()` methods. It can be forked to
+create a local scope with local instances.
 
 There are four lifetimes for dependencies:
 1. `Transient`. Service will be created when resolves. Can depend on dependencies with anything lifetime.
 2. `Singleton`. Service will be created once at `ServiceProvider` when it resolved (lazy). Can depend on dependencies 
-with anything lifetime.
+with anything lifetime. Cannot depend on services from forked `ServiceProvider` instances.
 3. `Instance`. Dependency was created outside of `ServiceProvider` and can be used by any other dependency.
 
-Process of working with library:
-1. Define your structs.
+How to work:
+1. Declare your structs.
 2. Create constructors and add `#[inject]` macro on its.
 3. Create a `ServiceProvider` object.
 4. Add your services and dependencies using `ServiceProvider::add_*` methods.
