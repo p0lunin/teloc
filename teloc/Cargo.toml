@@ -17,7 +17,7 @@ default = []
 [dependencies]
 actix-web = { version = "3", optional = true }
 actix-http = { version = "2", optional = true }
-actix-router = { version = "*", optional = true }
+actix-router = { version = "0.2", optional = true }
 pin-project = { version = "1", optional = true }
 frunk = "0.3.1"
 once_cell = "1.4.1"
