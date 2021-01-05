@@ -16,22 +16,40 @@ use std::pin::Pin;
 use std::ptr::NonNull;
 use std::sync::Arc;
 
-/// Struct for inject dependencies from `ServiceProvider` to an actix-web handler function.
+/// Struct for inject dependencies from `ServiceProvider` to an actix-web handler function. Works only with
+/// [actix_web::Resource](https://docs.rs/actix-web/3.3.2/actix_web/struct.Resource.html) service.
 ///
 /// **IMPORTANT:** dependencies from the `ServiceProvider` must be first in the list of arguments.
 ///
 /// For example you can see [example in git repo](https://github.com/p0lunin/teloc/tree/master/examples/actix_example).
-pub struct DIActixHandler<SP, CreateScope, F, ScopeResult, Args, Infers> {
+///
+/// ## Types that can be got in dependencies
+/// - actix_web::HttpRequest
+/// - &actix_http::RequestHead
+/// - &actix_web::http::Uri
+/// - &actix_web::http::Method
+/// - actix_web::http::Version
+/// - &actix_web::http::HeaderMap
+/// - &actix_router::Path<actix_router::Url>
+/// - Ref<'_, actix_http::Extensions>
+/// - &actix_web::dev::ResourceMap
+/// - Option<std::net::SocketAddr>
+/// - Ref<'_, ConnectionInfo>
+/// - &AppConfig
+///
+/// If you want to get something from the `HttpRequest` by a reference you must got one of types from
+/// the list above or `&HttpRequest` (the reference is important due to Rust lifetime checks).
+pub struct DIActixHandler<SP, ScopeFactory, F, ScopeResult, Args, Infers> {
     sp: Arc<SP>,
-    create_scope: CreateScope,
+    scope_factory: ScopeFactory,
     f: F,
     phantom: PhantomData<(ScopeResult, Args, Infers)>,
 }
 
-impl<ParSP, DepsSP, CreateScope, F, ScopeResult, Args, Infers>
-    DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, Args, Infers>
+impl<ParSP, DepsSP, ScopeFactory, F, ScopeResult, Args, Infers>
+    DIActixHandler<ServiceProvider<ParSP, DepsSP>, ScopeFactory, F, ScopeResult, Args, Infers>
 where
-    CreateScope: Fn(
+    ScopeFactory: Fn(
             ServiceProvider<
                 Arc<ServiceProvider<ParSP, DepsSP>>,
                 HCons<InstanceContainer<HttpRequest>, HNil>,
@@ -40,27 +58,32 @@ where
         + Clone
         + 'static,
 {
-    /// Creates DIActixHandler with specified `ServiceProvider` and actix-web handler function.
-    pub fn new(sp: Arc<ServiceProvider<ParSP, DepsSP>>, create_scope: CreateScope, f: F) -> Self {
+    /// Creates DIActixHandler with specified `ServiceProvider`, scope factory and actix-web handler function.
+    ///
+    /// - `ServiceProvider` is the global provider that can be used between different routes.
+    /// - Scope factory is a function that get local scope and can add some local dependencies that
+    /// will be unique in different requests.
+    /// - handler function is a function that must be called when new `HttpRequest` incoming.
+    pub fn new(sp: Arc<ServiceProvider<ParSP, DepsSP>>, scope_factory: ScopeFactory, f: F) -> Self {
         DIActixHandler {
             sp,
-            create_scope,
+            scope_factory,
             f,
             phantom: PhantomData,
         }
     }
 }
 
-impl<SP, CreateScope, F, ScopeResult, Args, Infers> Clone
-    for DIActixHandler<SP, CreateScope, F, ScopeResult, Args, Infers>
+impl<SP, ScopeFactory, F, ScopeResult, Args, Infers> Clone
+    for DIActixHandler<SP, ScopeFactory, F, ScopeResult, Args, Infers>
 where
-    CreateScope: Clone,
+    ScopeFactory: Clone,
     F: Clone,
 {
     fn clone(&self) -> Self {
         Self {
             sp: self.sp.clone(),
-            create_scope: self.create_scope.clone(),
+            scope_factory: self.scope_factory.clone(),
             f: self.f.clone(),
             phantom: PhantomData,
         }
@@ -123,13 +146,13 @@ where
 
 macro_rules! impl_factory_di_args {
     (($($num:tt, $param:ident),*), $($arg:ident, $cont:ident, $other:ident),*) => {
-        impl<$($param,)* ParSP, DepsSP, CreateScope, ScopeResult, F, Res, $($arg, $cont, $other),*>
+        impl<$($param,)* ParSP, DepsSP, ScopeFactory, ScopeResult, F, Res, $($arg, $cont, $other),*>
             Factory<
                 (HttpRequest, $($param,)*),
                 Pin<Box<SPFuture<ScopeResult, Pin<Box<dyn Future<Output=Res::Output>>>>>>,
                 Res::Output
             >
-            for DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, ($(($arg,$cont),)*), ($($other,)*)>
+            for DIActixHandler<ServiceProvider<ParSP, DepsSP>, ScopeFactory, F, ScopeResult, ($(($arg,$cont),)*), ($($other,)*)>
         where
             (HttpRequest, $($param,)*): FromRequest + 'static,
             F: 'static,
@@ -138,7 +161,7 @@ macro_rules! impl_factory_di_args {
             F: Clone + Fn($($arg,)* $($param),*) -> Res,
             Res: Future,
             Res::Output: Responder,
-            CreateScope: Fn(ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<InstanceContainer<HttpRequest>, HNil>>) -> ScopeResult + Clone + 'static,
+            ScopeFactory: Fn(ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<InstanceContainer<HttpRequest>, HNil>>) -> ScopeResult + Clone + 'static,
             ScopeResult: $(Resolver<'static, $cont, $arg, $other> +)* 'static,
             Self: 'static,
         {
@@ -149,7 +172,7 @@ macro_rules! impl_factory_di_args {
             {
                 let (req, $($param,)*) = data;
                 let forked = self.sp.fork_arc().add_instance(req);
-                let scope = Box::new((self.create_scope)(forked));
+                let scope = Box::new((self.scope_factory)(forked));
                 let ptr = Box::into_raw(scope);
                 SPFuture::new(ptr, move |sp| {
                     let f = self.f.clone();
