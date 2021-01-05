@@ -67,6 +67,8 @@ where
     }
 }
 
+// Safety was checked in https://play.rust-lang.org/?version=nightly&mode=debug&edition=2018&gist=118c918dcf33f7fd15faec185e3bcc4b
+// by miri
 #[pin_project::pin_project(PinnedDrop)]
 pub struct SPFuture<SP, Fut> {
     sp: *mut SP,
