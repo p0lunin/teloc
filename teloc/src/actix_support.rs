@@ -226,8 +226,8 @@ impl_resolver_for_request! (
     (&'a AppConfig, |req: &'a HttpRequest| req.app_config())
 );
 
-impl<'a, T, SP, Index>
-    Resolver<'a, GetRequestData<Option<&'a Data<T>>>, Option<&'a Data<T>>, Index> for SP
+impl<'a, T, SP, Index> Resolver<'a, GetRequestData<Option<&'a Data<T>>>, Option<&'a Data<T>>, Index>
+    for SP
 where
     T: 'static,
     Self: Selector<InstanceContainer<HttpRequest>, Index>,
