@@ -5,6 +5,7 @@ authors = ["p0lunin <dmytro.polunin@gmail.com>"]
 edition = "2018"
 description = "Macros for teloc framework"
 repository = "https://github.com/p0lunin/teloc"
+documentation = "https://docs.rs/teloc_macros/"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
