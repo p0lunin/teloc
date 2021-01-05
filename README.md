@@ -3,13 +3,14 @@
   <a href="https://github.com/teloxide/teloxide/actions">
     <img src="https://github.com/teloxide/teloxide/workflows/Continuous%20integration/badge.svg">
   </a>
-</div>
-<a href="https://docs.rs/teloc">
+  <a href="https://docs.rs/teloc">
     <img src="https://docs.rs/teloc/badge.svg">
-</a>
-<a href="https://crates.io/crates/teloc">
+  </a>
+  <a href="https://crates.io/crates/teloc">
     <img src="https://img.shields.io/crates/v/teloc.svg">
-</a>
+  </a>
+</div>
+
 Teloc is simple, compile-time DI framework for Rust inspired by 
 <a href = "https://docs.microsoft.com/en-us/aspnet/core/fundamentals/dependency-injection?view=aspnetcore-5.0">C# Dependency Injection Framework</a>.
 
