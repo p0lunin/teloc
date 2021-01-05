@@ -28,26 +28,20 @@ impl Repository {
 }
 
 // Service that handles requests.
-pub struct ActixService {
+pub struct ActixService<'a> {
     store: Arc<Repository>,
-    method: Method,
+    method: &'a Method,
 }
 
 // #[inject] macro allow to use `ActixService` in `ServiceProvider`
 #[teloc::inject]
-impl ActixService {
-    pub fn inject(store: Arc<Repository>, method: &Method) -> Self {
-        Self::new(store, method.clone())
+impl<'a> ActixService<'a> {
+    pub fn new(store: Arc<Repository>, method: &'a Method) -> Self {
+        Self { store, method }
     }
 }
 
-impl ActixService {
-    pub fn new(store: Arc<Repository>, method: Method) -> Self {
-        ActixService { store, method }
-    }
-}
-
-impl ActixService {
+impl ActixService<'_> {
     pub async fn change_and_get_previous(&self, new_data: String) -> String {
         let previous = self.store.get().await.clone();
         self.store.change(new_data).await;

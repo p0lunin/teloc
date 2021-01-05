@@ -5,7 +5,7 @@ use actix_web::{web, App, HttpServer};
 use std::sync::Arc;
 use teloc::{DIActixHandler, ServiceProvider};
 
-async fn index(service: Arc<ActixService>, data: String) -> String {
+async fn index(service: Arc<ActixService<'_>>, data: String) -> String {
     service.change_and_get_previous(data).await
 }
 
