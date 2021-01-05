@@ -51,6 +51,9 @@ jobs:
       - name: Test
         run: cd teloc && cargo test
 
+      - name: Build examples
+        run: cd examples/actix-example && cargo build
+
   code-checks-macros:
     runs-on: ubuntu-latest
     steps:
