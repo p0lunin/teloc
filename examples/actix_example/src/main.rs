@@ -5,7 +5,7 @@ use actix_web::{web, App, HttpServer};
 use std::sync::Arc;
 use teloc::{DIActixHandler, ServiceProvider};
 
-async fn index(service: Arc<ActixService<'_>>, data: String) -> String {
+async fn index(service: ActixService<'_>, data: String) -> String {
     service.change_and_get_previous(data).await
 }
 
@@ -20,7 +20,7 @@ async fn main() -> std::io::Result<()> {
         // Add dependency with a `Singleton` lifetime. More about lifetimes see in README.md.
         .add_singleton::<Arc<Repository>>()
         // Add dependency with a `Transient` lifetime. More about lifetimes see in README.md.
-        .add_transient::<Arc<ActixService>>();
+        .add_transient::<ActixService>();
     // We need to wrap Arc around `ServiceProvider` for thread-safety and cloning.
     let sp = Arc::new(sp);
 
