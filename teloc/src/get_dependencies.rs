@@ -12,11 +12,11 @@ mod impls {
     use frunk::hlist::HList;
     use frunk::{HCons, HNil};
 
-    impl<'a, T, TRest, Infer, InferRest, SP>
-        GetDependencies<'a, HCons<T, TRest>, HCons<Infer, InferRest>> for SP
+    impl<'a, T, TRest, Cont, Infer, InferRest, SP>
+        GetDependencies<'a, HCons<T, TRest>, HCons<(Cont, Infer), InferRest>> for SP
     where
         TRest: HList,
-        SP: Resolver<'a, T, Infer> + GetDependencies<'a, TRest, InferRest>,
+        SP: Resolver<'a, Cont, T, Infer> + GetDependencies<'a, TRest, InferRest>,
     {
         fn get_deps(&'a self) -> HCons<T, TRest> {
             GetDependencies::<TRest, InferRest>::get_deps(self).prepend(self.resolve())

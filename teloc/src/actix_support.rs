@@ -122,14 +122,14 @@ where
 }
 
 macro_rules! impl_factory_di_args {
-    (($($num:tt, $param:ident),*), $($arg:ident, $other:ident),*) => {
-        impl<$($param,)* ParSP, DepsSP, CreateScope, ScopeResult, F, Res, $($arg, $other),*>
+    (($($num:tt, $param:ident),*), $($arg:ident, $cont:ident, $other:ident),*) => {
+        impl<$($param,)* ParSP, DepsSP, CreateScope, ScopeResult, F, Res, $($arg, $cont, $other),*>
             Factory<
                 (HttpRequest, $($param,)*),
                 Pin<Box<SPFuture<ScopeResult, Pin<Box<dyn Future<Output=Res::Output>>>>>>,
                 Res::Output
             >
-            for DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, ($($arg,)*), ($($other,)*)>
+            for DIActixHandler<ServiceProvider<ParSP, DepsSP>, CreateScope, F, ScopeResult, ($(($arg,$cont),)*), ($($other,)*)>
         where
             (HttpRequest, $($param,)*): FromRequest + 'static,
             F: 'static,
@@ -139,7 +139,7 @@ macro_rules! impl_factory_di_args {
             Res: Future,
             Res::Output: Responder,
             CreateScope: Fn(ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<InstanceContainer<HttpRequest>, HNil>>) -> ScopeResult + Clone + 'static,
-            ScopeResult: $(Resolver<'static, $arg, $other> +)* 'static,
+            ScopeResult: $(Resolver<'static, $cont, $arg, $other> +)* 'static,
             Self: 'static,
         {
             #[allow(non_snake_case)]
@@ -170,15 +170,15 @@ macro_rules! impl_factory_di_args {
 macro_rules! impl_factory_di {
     ($($num:tt, $param:ident),*) => {
         impl_factory_di_args!(($($num, $param),*),);
-        impl_factory_di_args!(($($num, $param),*), A1, O1);
-        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2);
-        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3);
-        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3, A4, O4);
-        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3, A4, O4, A5, O5);
-        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3, A4, O4, A5, O5, A6, O6);
-        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3, A4, O4, A5, O5, A6, O6, A7, O7);
-        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3, A4, O4, A5, O5, A6, O6, A7, O7, A8, O8);
-        impl_factory_di_args!(($($num, $param),*), A1, O1, A2, O2, A3, O3, A4, O4, A5, O5, A6, O6, A7, O7, A8, O8, A9, O9);
+        impl_factory_di_args!(($($num, $param),*), A1, C1, O1);
+        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2);
+        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3);
+        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3, A4, C4, O4);
+        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3, A4, C4, O4, A5, C5, O5);
+        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3, A4, C4, O4, A5, C5, O5, A6, C6, O6);
+        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3, A4, C4, O4, A5, C5, O5, A6, C6, O6, A7, C7, O7);
+        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3, A4, C4, O4, A5, C5, O5, A6, C6, O6, A7, C7, O7, A8, C8, O8);
+        impl_factory_di_args!(($($num, $param),*), A1, C1, O1, A2, C2, O2, A3, C3, O3, A4, C4, O4, A5, C5, O5, A6, C6, O6, A7, C7, O7, A8, C8, O8, A9, C9, O9);
     };
 }
 
@@ -200,7 +200,7 @@ pub struct GetRequestData<T>(T);
 macro_rules! impl_resolver_for_request {
     ($(($ty:ty, $get:expr)),*) => {
         $(
-        impl<'a, SP, Index> Resolver<'a, $ty, (GetRequestData<$ty>, Index)> for SP
+        impl<'a, SP, Index> Resolver<'a, GetRequestData<$ty>, $ty, Index> for SP
         where
             Self: Selector<InstanceContainer<HttpRequest>, Index>,
         {
@@ -212,19 +212,10 @@ macro_rules! impl_resolver_for_request {
     };
 }
 
-impl<'a, SP, Index> Resolver<'a, &'a http::Method, (GetRequestData<http::Method>, Index)> for SP
-where
-    Self: Selector<InstanceContainer<HttpRequest>, Index>,
-{
-    fn resolve(&'a self) -> &'a http::Method {
-        self.get().get().method()
-    }
-}
-
 impl_resolver_for_request! (
     (&'a actix_http::RequestHead, |req: &'a HttpRequest| req.head()),
     (&'a http::Uri, |req: &'a HttpRequest| req.uri()),
-    //(&'a http::Method, |req: &'a HttpRequest| req.method()),
+    (&'a http::Method, |req: &'a HttpRequest| req.method()),
     (http::Version, |req: &'a HttpRequest| req.version()),
     (&'a http::HeaderMap, |req: &'a HttpRequest| req.headers()),
     (&'a actix_router::Path<actix_router::Url>, |req: &'a HttpRequest| req.match_info()),
@@ -236,7 +227,7 @@ impl_resolver_for_request! (
 );
 
 impl<'a, T, SP, Index>
-    Resolver<'a, Option<&'a Data<T>>, (GetRequestData<Option<&'a Data<T>>>, Index)> for SP
+    Resolver<'a, GetRequestData<Option<&'a Data<T>>>, Option<&'a Data<T>>, Index> for SP
 where
     T: 'static,
     Self: Selector<InstanceContainer<HttpRequest>, Index>,
