@@ -37,8 +37,8 @@ async fn main() -> std::io::Result<()> {
                     // dependencies in one scope.
                     |s| s,
                     // Function that will be called for each `HttpRequest`.
-                    index
-                )
+                    index,
+                ),
             ),
         )
     })

@@ -50,13 +50,13 @@ impl<ParSP, DepsSP, ScopeFactory, F, ScopeResult, Args, Infers>
     DIActixHandler<ServiceProvider<ParSP, DepsSP>, ScopeFactory, F, ScopeResult, Args, Infers>
 where
     ScopeFactory: Fn(
-            ServiceProvider<
-                Arc<ServiceProvider<ParSP, DepsSP>>,
-                HCons<InstanceContainer<HttpRequest>, HNil>,
-            >,
-        ) -> ScopeResult
-        + Clone
-        + 'static,
+        ServiceProvider<
+            Arc<ServiceProvider<ParSP, DepsSP>>,
+            HCons<InstanceContainer<HttpRequest>, HNil>,
+        >,
+    ) -> ScopeResult
+    + Clone
+    + 'static,
 {
     /// Creates DIActixHandler with specified `ServiceProvider`, scope factory and actix-web handler function.
     ///
