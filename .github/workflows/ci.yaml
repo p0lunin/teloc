@@ -52,7 +52,7 @@ jobs:
         run: cd teloc && cargo test
 
       - name: Build examples
-        run: cd examples/actix-example && cargo build
+        run: cd examples/actix_example && cargo build
 
   code-checks-macros:
     runs-on: ubuntu-latest
