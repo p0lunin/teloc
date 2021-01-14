@@ -67,6 +67,7 @@ mod lifetime;
 mod resolver;
 mod service_provider;
 pub mod dev;
+mod dependency_factory;
 
 #[cfg(feature = "actix-support")]
 pub use actix_support::DIActixHandler;

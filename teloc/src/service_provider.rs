@@ -7,6 +7,7 @@ use frunk::{HCons, HNil};
 use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::Arc;
+use crate::dependency_factory::{DepConstructorFactory, DependencyFactory};
 
 /// `ServiceProvider` struct is used as an IoC-container in which you declare your dependencies.
 ///
@@ -100,12 +101,7 @@ impl<Parent, Deps> ServiceProvider<Parent, Deps> {
 }
 
 // Clippy requires to create type aliases
-type ContainerTransientAddConvert<P, T, U, H> =
-    ServiceProvider<P, HCons<ConvertContainer<TransientContainer<T>, T, U>, H>>;
-type ContainerSingletonAddConvert<P, T, U, H> =
-    ServiceProvider<P, HCons<ConvertContainer<SingletonContainer<T>, T, U>, H>>;
-type ContainerInstanceAddConvert<P, T, U, H> =
-    ServiceProvider<P, HCons<ConvertContainer<InstanceContainer<T>, T, U>, H>>;
+type SPWithConvertCont<P, Cont, T, U, H> = ServiceProvider<P, HCons<ConvertContainer<Cont, T, U>, H>>;
 
 impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
     /// Method used primary for internal actions. In common usage you don't need to use it. It add dependencies to the store. You need
@@ -161,11 +157,8 @@ impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
     ///
     /// assert_ne!(s1.uuid, s2.uuid);
     /// ```
-    pub fn add_transient<T>(self) -> ServiceProvider<Parent, HCons<TransientContainer<T>, Deps>>
-    where
-        TransientContainer<T>: Init<Data = ()>,
-    {
-        self._add::<TransientContainer<T>>(())
+    pub fn add_transient<T>(self) -> ServiceProvider<Parent, HCons<TransientContainer<DepConstructorFactory<T>, T>, Deps>> {
+        self._add::<TransientContainer<DepConstructorFactory<T>, T>>(DepConstructorFactory::new())
     }
 
     /// Add dependency with the `Singleton` lifetime. Singleton services will be created only one
@@ -217,11 +210,8 @@ impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
     ///
     /// assert_eq!(s1.uuid, s2.uuid)
     /// ```
-    pub fn add_singleton<T>(self) -> ServiceProvider<Parent, HCons<SingletonContainer<T>, Deps>>
-    where
-        SingletonContainer<T>: Init<Data = ()>,
-    {
-        self._add::<SingletonContainer<T>>(())
+    pub fn add_singleton<T>(self) -> ServiceProvider<Parent, HCons<SingletonContainer<DepConstructorFactory<T>, T>, Deps>> {
+        self._add::<SingletonContainer<DepConstructorFactory<T>, T>>(DepConstructorFactory::new())
     }
 
     /// Add anything instance to provider. It likes singleton, but it cannot get dependencies from
@@ -259,10 +249,7 @@ impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
     pub fn add_instance<T>(
         self,
         data: T,
-    ) -> ServiceProvider<Parent, HCons<InstanceContainer<T>, Deps>>
-    where
-        InstanceContainer<T>: Init<Data = T>,
-    {
+    ) -> ServiceProvider<Parent, HCons<InstanceContainer<T>, Deps>> {
         self._add::<InstanceContainer<T>>(data)
     }
 
@@ -311,36 +298,44 @@ impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
     ///
     /// assert_eq!(controller.number_service.get_num(), 10);
     /// ```
-    pub fn add_transient_c<U, T>(self) -> ContainerTransientAddConvert<Parent, T, U, Deps>
+    pub fn add_transient_c<U, T>(self) -> SPWithConvertCont<Parent, TransientContainer<DepConstructorFactory<T>, T>, T, U, Deps>
     where
         T: Into<U>,
-        ConvertContainer<TransientContainer<T>, T, U>: Init<Data = ()>,
-        TransientContainer<T>: Init<Data = ()>,
     {
-        self._add::<ConvertContainer<TransientContainer<T>, T, U>>(())
+        self._add::<ConvertContainer<TransientContainer<DepConstructorFactory<T>, T>, T, U>>(DepConstructorFactory::new())
     }
 
     /// Same as `Provider::add_transient_c` but for `Singleton` lifetime.
-    pub fn add_singleton_c<U, T>(self) -> ContainerSingletonAddConvert<Parent, T, U, Deps>
+    pub fn add_singleton_c<U, T>(self) -> SPWithConvertCont<Parent, SingletonContainer<DepConstructorFactory<T>, T>, T, U, Deps>
     where
-        T: Into<U>,
-        ConvertContainer<SingletonContainer<T>, T, U>: Init<Data = ()>,
-        SingletonContainer<T>: Init<Data = ()>,
+        T: Into<U>
     {
-        self._add::<ConvertContainer<SingletonContainer<T>, T, U>>(())
+        self._add::<ConvertContainer<SingletonContainer<DepConstructorFactory<T>, T>, T, U>>(DepConstructorFactory::new())
     }
 
     /// Same as `Provider::add_transient_c` but for `Instance` lifetime.
     pub fn add_instance_c<U, T>(
         self,
         instance: T,
-    ) -> ContainerInstanceAddConvert<Parent, T, U, Deps>
+    ) -> SPWithConvertCont<Parent, InstanceContainer<T>, T, U, Deps>
     where
         T: Into<U>,
-        ConvertContainer<InstanceContainer<T>, T, U>: Init<Data = T>,
-        InstanceContainer<T>: Init<Data = T>,
     {
         self._add::<ConvertContainer<InstanceContainer<T>, T, U>>(instance)
+    }
+
+    pub fn add_transient_f<F, T, FactoryDeps>(self, factory: F) -> ServiceProvider<Parent, HCons<TransientContainer<F, T>, Deps>>
+    where
+        F: DependencyFactory<FactoryDeps, T>
+    {
+        self._add::<TransientContainer<F, T>>(factory)
+    }
+
+    pub fn add_singleton_f<F, T, FactoryDeps>(self, factory: F) -> ServiceProvider<Parent, HCons<SingletonContainer<F, T>, Deps>>
+    where
+        F: DependencyFactory<FactoryDeps, T>
+    {
+        self._add::<SingletonContainer<F, T>>(factory)
     }
 }
 
