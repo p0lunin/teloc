@@ -86,7 +86,11 @@ fn main() {
         .add_transient::<Controller>();
     // Fork `ServiceProvider`. It creates a new `ServiceProvider` which will have
     // access to the dependencies from parent `ServiceProvider`.
-    let scope = sp.fork().add_instance(10);
+    let scope = sp
+        // .fork() method creates a local mutable scope with self parent immutable `ServiceProvider`.
+        .fork()
+        // Add an instance of `i32` that will be used when `ConstService` will be initialized.
+        .add_instance(10);
     // Get dependency from `ServiceProvider`
     let controller: Controller = scope.resolve();
     assert_eq!(controller.number_service.number, 10);

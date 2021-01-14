@@ -1,5 +1,3 @@
-//! This is a section for advanced usage. For common usage you can not read this page.
-
 use crate::dependency::DependencyClone;
 use crate::get_dependencies::GetDependencies;
 use crate::{Dependency, Resolver};
