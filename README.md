@@ -114,7 +114,7 @@ For more examples see [examples folder](/examples) or [tests folder](/teloc/test
 <tr>
 <td>Can be used without dyn traits</td>
 <td>Yes</td>
-<td>No</td>
+<td><a href="https://github.com/p0lunin/teloc/issues/8">Yes</a></td>
 <td>Yes</td>
 </tr>
 <tr>
