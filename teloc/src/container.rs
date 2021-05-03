@@ -25,6 +25,7 @@ pub trait ResolveContainer<'a, Elem, ContGet, Deps> {
     fn resolve_container<F: Fn() -> Deps>(ct: &'a ContGet, get_deps: F) -> Elem;
 }
 
+#[derive(Debug)]
 pub struct TransientContainer<T>(PhantomData<T>);
 impl<T> Init for TransientContainer<T> {
     type Data = ();
@@ -54,6 +55,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct SingletonContainer<T>(OnceCell<T>);
 impl<T> Init for SingletonContainer<T> {
     type Data = ();
@@ -103,6 +105,7 @@ impl<T> SingletonContainer<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct InstanceContainer<T>(T);
 impl<T> Container<T> for InstanceContainer<T> {}
 impl<T> Init for InstanceContainer<T> {
@@ -137,6 +140,7 @@ impl<T> InstanceContainer<T> {
     }
 }
 
+#[derive(Debug)]
 pub struct ByRefSingletonContainer<T>(PhantomData<T>);
 impl<T> Container<&T> for ByRefSingletonContainer<T> {}
 impl<T> Init for ByRefSingletonContainer<T> {
@@ -180,6 +184,7 @@ where
     }
 }
 
+#[derive(Debug)]
 pub struct ByRefInstanceContainer<T>(PhantomData<T>);
 impl<'a, T> Container<&'a T> for ByRefInstanceContainer<T> {}
 impl<T> Init for ByRefInstanceContainer<T> {
