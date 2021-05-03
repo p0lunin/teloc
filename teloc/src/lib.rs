@@ -69,7 +69,7 @@ mod service_provider;
 pub mod dev;
 
 #[cfg(feature = "actix-support")]
-pub use actix_support::DIActixHandler;
+pub use actix_support::DiActixHandler;
 
 pub use {
     dependency::Dependency,

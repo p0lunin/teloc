@@ -39,7 +39,7 @@ use std::sync::Arc;
 ///
 /// If you want to get something from the `HttpRequest` by a reference you must got one of types from
 /// the list above or `&HttpRequest` (the reference is important due to Rust lifetime checks).
-pub struct DIActixHandler<SP, ScopeFactory, F, ScopeResult, Args, Infers> {
+pub struct DiActixHandler<SP, ScopeFactory, F, ScopeResult, Args, Infers> {
     sp: Arc<SP>,
     scope_factory: ScopeFactory,
     f: F,
@@ -47,7 +47,7 @@ pub struct DIActixHandler<SP, ScopeFactory, F, ScopeResult, Args, Infers> {
 }
 
 impl<ParSP, DepsSP, ScopeFactory, F, ScopeResult, Args, Infers>
-    DIActixHandler<ServiceProvider<ParSP, DepsSP>, ScopeFactory, F, ScopeResult, Args, Infers>
+    DiActixHandler<ServiceProvider<ParSP, DepsSP>, ScopeFactory, F, ScopeResult, Args, Infers>
 where
     ScopeFactory: Fn(
         ServiceProvider<
@@ -65,7 +65,7 @@ where
     /// will be unique in different requests.
     /// - handler function is a function that must be called when new `HttpRequest` incoming.
     pub fn new(sp: Arc<ServiceProvider<ParSP, DepsSP>>, scope_factory: ScopeFactory, f: F) -> Self {
-        DIActixHandler {
+        DiActixHandler {
             sp,
             scope_factory,
             f,
@@ -75,7 +75,7 @@ where
 }
 
 impl<SP, ScopeFactory, F, ScopeResult, Args, Infers> Clone
-    for DIActixHandler<SP, ScopeFactory, F, ScopeResult, Args, Infers>
+    for DiActixHandler<SP, ScopeFactory, F, ScopeResult, Args, Infers>
 where
     ScopeFactory: Clone,
     F: Clone,
@@ -93,15 +93,15 @@ where
 // Safety was checked in https://play.rust-lang.org/?version=nightly&mode=debug&edition=2018&gist=118c918dcf33f7fd15faec185e3bcc4b
 // by miri
 #[pin_project::pin_project(PinnedDrop)]
-pub struct SPFuture<SP, Fut> {
+pub struct SpFuture<SP, Fut> {
     sp: *mut SP,
     #[pin]
     fut: NonNull<Fut>,
 }
 
-impl<SP, Fut> SPFuture<SP, Fut> {
+impl<SP, Fut> SpFuture<SP, Fut> {
     pub fn new(sp: *mut SP, f: impl FnOnce(*const SP) -> Fut) -> Pin<Box<Self>> {
-        let mut this = Box::pin(SPFuture {
+        let mut this = Box::pin(SpFuture {
             sp,
             fut: NonNull::dangling(),
         });
@@ -115,7 +115,7 @@ impl<SP, Fut> SPFuture<SP, Fut> {
 }
 
 #[pin_project::pinned_drop]
-impl<SP, Fut> PinnedDrop for SPFuture<SP, Fut> {
+impl<SP, Fut> PinnedDrop for SpFuture<SP, Fut> {
     fn drop(self: Pin<&mut Self>) {
         use std::alloc::{dealloc, Layout};
         unsafe {
@@ -127,7 +127,7 @@ impl<SP, Fut> PinnedDrop for SPFuture<SP, Fut> {
     }
 }
 
-impl<SP, Fut> Future for SPFuture<SP, Fut>
+impl<SP, Fut> Future for SpFuture<SP, Fut>
 where
     Fut: Future,
 {
@@ -149,10 +149,10 @@ macro_rules! impl_factory_di_args {
         impl<$($param,)* ParSP, DepsSP, ScopeFactory, ScopeResult, F, Res, $($arg, $cont, $other),*>
             Factory<
                 (HttpRequest, $($param,)*),
-                Pin<Box<SPFuture<ScopeResult, Pin<Box<dyn Future<Output=Res::Output>>>>>>,
+                Pin<Box<SpFuture<ScopeResult, Pin<Box<dyn Future<Output=Res::Output>>>>>>,
                 Res::Output
             >
-            for DIActixHandler<ServiceProvider<ParSP, DepsSP>, ScopeFactory, F, ScopeResult, ($(($arg,$cont),)*), ($($other,)*)>
+            for DiActixHandler<ServiceProvider<ParSP, DepsSP>, ScopeFactory, F, ScopeResult, ($(($arg,$cont),)*), ($($other,)*)>
         where
             (HttpRequest, $($param,)*): FromRequest + 'static,
             F: 'static,
@@ -168,13 +168,13 @@ macro_rules! impl_factory_di_args {
             #[allow(non_snake_case)]
             #[allow(unused_variables)]
             fn call(&self, data: (HttpRequest, $($param,)*))
-                -> Pin<Box<SPFuture<ScopeResult, Pin<Box<dyn Future<Output=Res::Output>>>>>>
+                -> Pin<Box<SpFuture<ScopeResult, Pin<Box<dyn Future<Output=Res::Output>>>>>>
             {
                 let (req, $($param,)*) = data;
                 let forked = self.sp.fork_arc().add_instance(req);
                 let scope = Box::new((self.scope_factory)(forked));
                 let ptr = Box::into_raw(scope);
-                SPFuture::new(ptr, move |sp| {
+                SpFuture::new(ptr, move |sp| {
                     let f = self.f.clone();
                     $(let $param = $param;)*
                     Box::pin(async move {
