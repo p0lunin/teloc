@@ -47,11 +47,13 @@ use std::sync::Arc;
 /// let controller: Controller = scope.resolve();
 /// assert_eq!(controller.number_service.number, 10);
 /// ```
+#[derive(Debug)]
 pub struct ServiceProvider<Parent, Dependencies> {
     parent: Parent,
     dependencies: Dependencies,
 }
 
+#[derive(Debug)]
 pub struct EmptyServiceProvider;
 
 impl ServiceProvider<EmptyServiceProvider, HNil> {
