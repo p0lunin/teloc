@@ -3,7 +3,7 @@ mod services;
 use crate::services::{ActixService, Repository};
 use actix_web::{web, App, HttpServer};
 use std::sync::Arc;
-use teloc::{DIActixHandler, ServiceProvider};
+use teloc::{DiActixHandler, ServiceProvider};
 
 async fn index(service: ActixService<'_>, data: String) -> String {
     service.change_and_get_previous(data).await
@@ -30,7 +30,7 @@ async fn main() -> std::io::Result<()> {
             web::post().to(
                 // `DIActixHandler` gives as input a `ServiceProvider` and a handler function and inject
                 // dependencies from the start args in function.
-                DIActixHandler::new(
+                DiActixHandler::new(
                     // Global `ServiceProvider`.
                     sp.clone(),
                     // Scope factory that can add scope instances that will be the same between different
