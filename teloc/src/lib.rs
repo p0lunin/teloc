@@ -81,5 +81,5 @@ pub use {
 
 #[doc(hidden)]
 pub mod reexport {
-    pub use {frunk, frunk::Hlist};
+    pub use {frunk, frunk::HList};
 }
