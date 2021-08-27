@@ -50,11 +50,11 @@ impl<ParSP, DepsSP, ScopeFactory, F, ScopeResult, Args, Infers>
     DiActixHandler<ServiceProvider<ParSP, DepsSP>, ScopeFactory, F, ScopeResult, Args, Infers>
 where
     ScopeFactory: Fn(
-        ServiceProvider<
-            Arc<ServiceProvider<ParSP, DepsSP>>,
-            HCons<InstanceContainer<HttpRequest>, HNil>,
-        >,
-    ) -> ScopeResult
+            ServiceProvider<
+                Arc<ServiceProvider<ParSP, DepsSP>>,
+                HCons<InstanceContainer<HttpRequest>, HNil>,
+            >,
+        ) -> ScopeResult
         + Clone
         + 'static,
 {
