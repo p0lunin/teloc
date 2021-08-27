@@ -19,14 +19,15 @@
 //!
 //! Example:
 //! ```rust
+//! use std::rc::Rc;
 //! use teloc::*;
 //!
 //! struct ConstService {
-//!     number: i32,
+//!     number: Rc<i32>,
 //! }
 //! #[inject]
 //! impl ConstService {
-//!     pub fn new(number: i32) -> Self {
+//!     pub fn new(number: Rc<i32>) -> Self {
 //!         ConstService { number }
 //!     }
 //! }
@@ -49,10 +50,10 @@
 //! let scope = container
 //!     // .fork() method creates a local mutable scope with self parent immutable `ServiceProvider`.
 //!     .fork()
-//!     // Add an instance of `i32` that will be used when `ConstService` will be initialized.
-//!     .add_instance(10);
+//!     // Add an instance of `Rc<i32>` that will be used when `ConstService` will be initialized.
+//!     .add_instance(Rc::new(10));
 //! let controller: Controller = scope.resolve();
-//! assert_eq!(controller.number_service.number, 10);
+//! assert_eq!(*controller.number_service.number, 10);
 //! ```
 
 #![deny(unsafe_code)]
@@ -61,12 +62,12 @@
 mod actix_support;
 mod container;
 mod dependency;
+pub mod dev;
 mod get_dependencies;
 mod index;
 mod lifetime;
 mod resolver;
 mod service_provider;
-pub mod dev;
 
 #[cfg(feature = "actix-support")]
 pub use actix_support::DiActixHandler;

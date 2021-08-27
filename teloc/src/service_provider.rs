@@ -23,14 +23,16 @@ use std::sync::Arc;
 ///
 /// Example of usage `ServiceProvider`:
 /// ```
+/// use std::rc::Rc;
 /// use teloc::*;
+///
 /// struct ConstService {
-///     number: i32,
+///     number: Rc<i32>,
 /// }
 ///
 /// #[inject]
 /// impl ConstService {
-///     pub fn new(number: i32) -> Self {
+///     pub fn new(number: Rc<i32>) -> Self {
 ///         ConstService { number }
 ///     }
 /// }
@@ -43,9 +45,9 @@ use std::sync::Arc;
 /// let container = ServiceProvider::new()
 ///     .add_transient::<ConstService>()
 ///     .add_transient::<Controller>();
-/// let scope = container.fork().add_instance(10);
+/// let scope = container.fork().add_instance(Rc::new(10));
 /// let controller: Controller = scope.resolve();
-/// assert_eq!(controller.number_service.number, 10);
+/// assert_eq!(*controller.number_service.number, 10);
 /// ```
 #[derive(Debug)]
 pub struct ServiceProvider<Parent, Dependencies> {
@@ -116,7 +118,7 @@ impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
     ///
     /// ```
     /// use teloc::*;
-    /// use teloc::container::TransientContainer;
+    /// use teloc::dev::container::TransientContainer;
     ///
     /// struct Service {
     ///     data: i32,
