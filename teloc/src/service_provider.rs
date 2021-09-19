@@ -75,6 +75,10 @@ impl Default for ServiceProvider<EmptyServiceProvider, HNil> {
 }
 
 impl<Parent, Deps> ServiceProvider<Parent, Deps> {
+    pub(crate) fn dependencies(&self) -> &Deps {
+        &self.dependencies
+    }
+
     /// Forking `ServiceProvider` creates a new `ServiceProvider` with reference to the parent.
     /// `resolve` method on forked `ServiceProvider` will find dependencies form self and parent.
     pub fn fork(&self) -> ServiceProvider<&Self, HNil> {
@@ -345,12 +349,6 @@ impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
         InstanceContainer<T>: Init<Data = T>,
     {
         self._add::<ConvertContainer<InstanceContainer<T>, T, U>>(instance)
-    }
-}
-
-impl<'a, Parent, H> ServiceProvider<Parent, H> {
-    pub(crate) fn dependencies(&self) -> &H {
-        &self.dependencies
     }
 }
 
