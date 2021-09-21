@@ -25,6 +25,6 @@
 /// assert_eq!(foo.0, 5)
 /// ```
 // Container is a local-crate type to avoid orphan rules. It must be _concrete_, __unique__ type when impl.
-pub trait Resolver<'a, Container, Item, Infer> {
-    fn resolve(&'a self) -> Item;
+pub trait Resolver<'a, Cont, T, Infer> {
+    fn resolve(&'a self) -> T;
 }

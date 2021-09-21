@@ -19,8 +19,8 @@ pub trait Container {
 
 /// Trait needed primary to working with `ConvertContainer`. Implement it for your container if you
 /// wish that your container can be placed inside of `ConvertContainer`
-pub trait ResolveContainer<'a, Elem, ContGet, Deps> {
-    fn resolve_container<F: Fn() -> Deps>(ct: &'a ContGet, get_deps: F) -> Elem;
+pub trait ResolveContainer<'a, T, Cont, Deps> {
+    fn resolve_container<F: Fn() -> Deps>(ct: &'a Cont, deps: F) -> T;
 }
 
 #[derive(Debug)]
@@ -202,37 +202,37 @@ where
     }
 }
 
-pub struct ConvertContainer<C, CT, T>(C, PhantomData<(CT, T)>);
-impl<C, CT, T> Container for ConvertContainer<C, CT, T>
+pub struct ConvertContainer<Cont, T, U>(Cont, PhantomData<(T, U)>);
+impl<Cont, T, U> Container for ConvertContainer<Cont, T, U>
 where
-    C: Container,
+    Cont: Container,
 {
-    type Data = C::Data;
+    type Data = Cont::Data;
 
     fn init(data: Self::Data) -> Self {
-        Self(C::init(data), PhantomData)
+        Self(Cont::init(data), PhantomData)
     }
 }
-impl<'a, C, CT, T, Deps> ResolveContainer<'a, T, Self, Deps> for ConvertContainer<C, CT, T>
+impl<'a, Cont, T, U, Deps> ResolveContainer<'a, U, Self, Deps> for ConvertContainer<Cont, T, U>
 where
-    C: ResolveContainer<'a, CT, C, Deps>,
-    CT: Into<T>,
+    Cont: ResolveContainer<'a, T, Cont, Deps>,
+    T: Into<U>,
 {
-    fn resolve_container<F: Fn() -> Deps>(ct: &'a Self, deps: F) -> T {
-        C::resolve_container(&ct.0, deps).into()
+    fn resolve_container<F: Fn() -> Deps>(ct: &'a Self, deps: F) -> U {
+        Cont::resolve_container(&ct.0, deps).into()
     }
 }
-impl<'a, C, CT, T, SP, Index, Deps, Infer>
-    Resolver<'a, ConvertContainer<C, CT, T>, T, (Index, Deps, Infer)> for SP
+impl<'a, Cont, T, U, SP, Index, Deps, Infer>
+    Resolver<'a, ConvertContainer<Cont, T, U>, U, (Index, Deps, Infer)> for SP
 where
-    T: 'a,
+    U: 'a,
     Deps: 'a,
-    C: 'a,
-    CT: Into<T> + 'a,
-    ConvertContainer<C, CT, T>: ResolveContainer<'a, T, ConvertContainer<C, CT, T>, Deps>,
-    SP: Selector<ConvertContainer<C, CT, T>, Index> + GetDependencies<'a, Deps, Infer>,
+    Cont: 'a,
+    T: Into<U> + 'a,
+    ConvertContainer<Cont, T, U>: ResolveContainer<'a, U, ConvertContainer<Cont, T, U>, Deps>,
+    SP: Selector<ConvertContainer<Cont, T, U>, Index> + GetDependencies<'a, Deps, Infer>,
 {
-    fn resolve(&'a self) -> T {
+    fn resolve(&'a self) -> U {
         ConvertContainer::resolve_container(self.get(), || self.get_deps())
     }
 }

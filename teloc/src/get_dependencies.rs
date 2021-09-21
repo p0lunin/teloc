@@ -2,8 +2,8 @@
 
 /// The trait, used for getting list of dependencies from provider of services. Do not use it by
 /// yourself.
-pub trait GetDependencies<'a, Dependencies, Indexes> {
-    fn get_deps(&'a self) -> Dependencies;
+pub trait GetDependencies<'a, Deps, Indexes> {
+    fn get_deps(&'a self) -> Deps;
 }
 
 mod impls {
