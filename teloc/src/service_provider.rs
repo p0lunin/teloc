@@ -1,5 +1,5 @@
 use crate::container::{
-    ConvertContainer, Init, InstanceContainer, SingletonContainer, TransientContainer,
+    Container, ConvertContainer, InstanceContainer, SingletonContainer, TransientContainer,
 };
 use crate::index::{ParentIndex, SelfIndex};
 use frunk::hlist::{HList, Selector};
@@ -131,10 +131,10 @@ impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
     /// let sp = ServiceProvider::new()
     ///     ._add::<TransientContainer<Service>>(());
     /// ```
-    pub fn _add<Container: Init>(
+    pub fn _add<Cont: Container>(
         self,
-        data: Container::Data,
-    ) -> ServiceProvider<Parent, HCons<Container, Deps>> {
+        data: Cont::Data,
+    ) -> ServiceProvider<Parent, HCons<Cont, Deps>> {
         let ServiceProvider {
             parent,
             dependencies,
@@ -171,7 +171,7 @@ impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
     /// ```
     pub fn add_transient<T>(self) -> ServiceProvider<Parent, HCons<TransientContainer<T>, Deps>>
     where
-        TransientContainer<T>: Init<Data = ()>,
+        TransientContainer<T>: Container<Data = ()>,
     {
         self._add::<TransientContainer<T>>(())
     }
@@ -227,7 +227,7 @@ impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
     /// ```
     pub fn add_singleton<T>(self) -> ServiceProvider<Parent, HCons<SingletonContainer<T>, Deps>>
     where
-        SingletonContainer<T>: Init<Data = ()>,
+        SingletonContainer<T>: Container<Data = ()>,
     {
         self._add::<SingletonContainer<T>>(())
     }
@@ -269,7 +269,7 @@ impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
         data: T,
     ) -> ServiceProvider<Parent, HCons<InstanceContainer<T>, Deps>>
     where
-        InstanceContainer<T>: Init<Data = T>,
+        InstanceContainer<T>: Container<Data = T>,
     {
         self._add::<InstanceContainer<T>>(data)
     }
@@ -322,8 +322,8 @@ impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
     pub fn add_transient_c<U, T>(self) -> ContainerTransientAddConvert<Parent, T, U, Deps>
     where
         T: Into<U>,
-        ConvertContainer<TransientContainer<T>, T, U>: Init<Data = ()>,
-        TransientContainer<T>: Init<Data = ()>,
+        ConvertContainer<TransientContainer<T>, T, U>: Container<Data = ()>,
+        TransientContainer<T>: Container<Data = ()>,
     {
         self._add::<ConvertContainer<TransientContainer<T>, T, U>>(())
     }
@@ -332,8 +332,8 @@ impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
     pub fn add_singleton_c<U, T>(self) -> ContainerSingletonAddConvert<Parent, T, U, Deps>
     where
         T: Into<U>,
-        ConvertContainer<SingletonContainer<T>, T, U>: Init<Data = ()>,
-        SingletonContainer<T>: Init<Data = ()>,
+        ConvertContainer<SingletonContainer<T>, T, U>: Container<Data = ()>,
+        SingletonContainer<T>: Container<Data = ()>,
     {
         self._add::<ConvertContainer<SingletonContainer<T>, T, U>>(())
     }
@@ -345,8 +345,8 @@ impl<Parent, Deps: HList> ServiceProvider<Parent, Deps> {
     ) -> ContainerInstanceAddConvert<Parent, T, U, Deps>
     where
         T: Into<U>,
-        ConvertContainer<InstanceContainer<T>, T, U>: Init<Data = T>,
-        InstanceContainer<T>: Init<Data = T>,
+        ConvertContainer<InstanceContainer<T>, T, U>: Container<Data = T>,
+        InstanceContainer<T>: Container<Data = T>,
     {
         self._add::<ConvertContainer<InstanceContainer<T>, T, U>>(instance)
     }

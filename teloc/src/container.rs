@@ -12,13 +12,11 @@ use std::marker::PhantomData;
 ///
 /// [`ServiceProvider`]: teloc::ServiceProvider
 /// [`ConvertContainer`]: teloc::container::ConvertContainer
-pub trait Init {
+pub trait Container {
     type Data;
     fn init(data: Self::Data) -> Self;
 }
-/// Container is a trait that used in `Get` trait to indicate a return value. Generic T shows that
-/// which type will be returned by `Get` trait.
-pub trait Container<T> {}
+
 /// Trait needed primary to working with `ConvertContainer`. Implement it for your container if you
 /// wish that your container can be placed inside of `ConvertContainer`
 pub trait ResolveContainer<'a, Elem, ContGet, Deps> {
@@ -27,14 +25,13 @@ pub trait ResolveContainer<'a, Elem, ContGet, Deps> {
 
 #[derive(Debug)]
 pub struct TransientContainer<T>(PhantomData<T>);
-impl<T> Init for TransientContainer<T> {
+impl<T> Container for TransientContainer<T> {
     type Data = ();
 
     fn init(_: ()) -> Self {
         Self(PhantomData)
     }
 }
-impl<T> Container<T> for TransientContainer<T> {}
 impl<'a, T, Deps> ResolveContainer<'a, T, Self, Deps> for TransientContainer<T>
 where
     T: Dependency<Deps>,
@@ -57,14 +54,13 @@ where
 
 #[derive(Debug)]
 pub struct SingletonContainer<T>(OnceCell<T>);
-impl<T> Init for SingletonContainer<T> {
+impl<T> Container for SingletonContainer<T> {
     type Data = ();
 
     fn init(_: ()) -> Self {
         Self(OnceCell::new())
     }
 }
-impl<T> Container<T> for SingletonContainer<T> {}
 impl<T, Deps> ResolveContainer<'_, T, Self, Deps> for SingletonContainer<T>
 where
     T: Dependency<Deps> + DependencyClone,
@@ -107,8 +103,7 @@ impl<T> SingletonContainer<T> {
 
 #[derive(Debug)]
 pub struct InstanceContainer<T>(T);
-impl<T> Container<T> for InstanceContainer<T> {}
-impl<T> Init for InstanceContainer<T> {
+impl<T> Container for InstanceContainer<T> {
     type Data = T;
 
     fn init(instance: T) -> Self {
@@ -142,8 +137,7 @@ impl<T> InstanceContainer<T> {
 
 #[derive(Debug)]
 pub struct ByRefSingletonContainer<T>(PhantomData<T>);
-impl<T> Container<&T> for ByRefSingletonContainer<T> {}
-impl<T> Init for ByRefSingletonContainer<T> {
+impl<T> Container for ByRefSingletonContainer<T> {
     type Data = ();
 
     fn init(_: ()) -> Self {
@@ -186,8 +180,7 @@ where
 
 #[derive(Debug)]
 pub struct ByRefInstanceContainer<T>(PhantomData<T>);
-impl<'a, T> Container<&'a T> for ByRefInstanceContainer<T> {}
-impl<T> Init for ByRefInstanceContainer<T> {
+impl<T> Container for ByRefInstanceContainer<T> {
     type Data = ();
 
     fn init(_: ()) -> Self {
@@ -210,15 +203,9 @@ where
 }
 
 pub struct ConvertContainer<C, CT, T>(C, PhantomData<(CT, T)>);
-impl<C, CT, T> Container<T> for ConvertContainer<C, CT, T>
+impl<C, CT, T> Container for ConvertContainer<C, CT, T>
 where
-    C: Container<CT>,
-    CT: Into<T>,
-{
-}
-impl<C, CT, T> Init for ConvertContainer<C, CT, T>
-where
-    C: Init,
+    C: Container,
 {
     type Data = C::Data;
 
@@ -240,7 +227,7 @@ impl<'a, C, CT, T, SP, Index, Deps, Infer>
 where
     T: 'a,
     Deps: 'a,
-    C: Container<CT> + 'a,
+    C: 'a,
     CT: Into<T> + 'a,
     ConvertContainer<C, CT, T>: ResolveContainer<'a, T, ConvertContainer<C, CT, T>, Deps>,
     SP: Selector<ConvertContainer<C, CT, T>, Index> + GetDependencies<'a, Deps, Infer>,
