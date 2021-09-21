@@ -61,23 +61,23 @@ impl<T> Container for SingletonContainer<T> {
         Self(OnceCell::new())
     }
 }
-impl<T, Deps> ResolveContainer<'_, T, Self, Deps> for SingletonContainer<T>
+impl<'a, T, Deps> ResolveContainer<'a, &'a T, Self, Deps> for SingletonContainer<T>
 where
-    T: Dependency<Deps> + DependencyClone,
+    T: Dependency<Deps> + 'a,
 {
-    fn resolve_container<F: Fn() -> Deps>(ct: &Self, get_deps: F) -> T {
+    fn resolve_container<F: Fn() -> Deps>(ct: &'a Self, get_deps: F) -> &'a T {
         let elem_ref = ct.get().get();
         match elem_ref {
             None => {
                 let needed = get_deps();
                 let dep = T::init(needed);
-                match ct.get().set(dep.clone()) {
+                match ct.get().set(dep) {
                     Ok(()) => {}
                     Err(_) => unreachable!("Should never been reached"),
                 }
-                dep
+                ct.get().get().expect("Should never been failed")
             }
-            Some(dep) => dep.clone(),
+            Some(dep) => dep,
         }
     }
 }
@@ -85,12 +85,24 @@ where
 impl<'a, T, SP, Index, Deps, Infer> Resolver<'a, SingletonContainer<T>, T, (Index, Deps, Infer)>
     for SP
 where
-    SingletonContainer<T>: ResolveContainer<'a, T, SingletonContainer<T>, Deps>,
-    T: Dependency<Deps> + 'a,
+    SingletonContainer<T>: ResolveContainer<'a, &'a T, SingletonContainer<T>, Deps>,
+    T: Dependency<Deps> + DependencyClone + 'a,
     Deps: 'a,
     SP: GetDependencies<'a, Deps, Infer> + Selector<SingletonContainer<T>, Index>,
 {
     fn resolve(&'a self) -> T {
+        SingletonContainer::resolve_container(self.get(), || self.get_deps()).clone()
+    }
+}
+impl<'a, T, SP, Index, Deps, Infer> Resolver<'a, SingletonContainer<T>, &'a T, (Index, Deps, Infer)>
+    for SP
+where
+    SingletonContainer<T>: ResolveContainer<'a, &'a T, SingletonContainer<T>, Deps>,
+    T: Dependency<Deps> + 'a,
+    Deps: 'a,
+    SP: GetDependencies<'a, Deps, Infer> + Selector<SingletonContainer<T>, Index>,
+{
+    fn resolve(&'a self) -> &'a T {
         SingletonContainer::resolve_container(self.get(), || self.get_deps())
     }
 }
@@ -110,21 +122,27 @@ impl<T> Container for InstanceContainer<T> {
         Self(instance)
     }
 }
-impl<T> ResolveContainer<'_, T, Self, HNil> for InstanceContainer<T>
-where
-    T: DependencyClone,
-{
-    fn resolve_container<F: Fn() -> HNil>(ct: &Self, _: F) -> T {
-        ct.0.clone()
+impl<'a, T> ResolveContainer<'a, &'a T, InstanceContainer<T>, HNil> for InstanceContainer<T> {
+    fn resolve_container<F: Fn() -> HNil>(ct: &'a InstanceContainer<T>, _: F) -> &'a T {
+        &ct.0
     }
 }
 impl<'a, T, SP, Index> Resolver<'a, InstanceContainer<T>, T, Index> for SP
 where
-    T: 'a,
+    T: DependencyClone + 'a,
     SP: Selector<InstanceContainer<T>, Index>,
-    InstanceContainer<T>: ResolveContainer<'a, T, InstanceContainer<T>, HNil>,
+    InstanceContainer<T>: ResolveContainer<'a, &'a T, InstanceContainer<T>, HNil>,
 {
     fn resolve(&'a self) -> T {
+        InstanceContainer::resolve_container(self.get(), || HNil).clone()
+    }
+}
+impl<'a, T, SP, Index> Resolver<'a, InstanceContainer<T>, &'a T, Index> for SP
+where
+    SP: Selector<InstanceContainer<T>, Index>,
+    InstanceContainer<T>: ResolveContainer<'a, &'a T, InstanceContainer<T>, HNil>,
+{
+    fn resolve(&'a self) -> &'a T {
         InstanceContainer::resolve_container(self.get(), || HNil)
     }
 }
@@ -132,73 +150,6 @@ impl<T> InstanceContainer<T> {
     #[inline]
     pub fn get(&self) -> &T {
         &self.0
-    }
-}
-
-#[derive(Debug)]
-pub struct ByRefSingletonContainer<T>(PhantomData<T>);
-impl<T> Container for ByRefSingletonContainer<T> {
-    type Data = ();
-
-    fn init(_: ()) -> Self {
-        Self(PhantomData)
-    }
-}
-impl<'a, T, Deps> ResolveContainer<'a, &'a T, SingletonContainer<T>, Deps>
-    for ByRefSingletonContainer<T>
-where
-    T: Dependency<Deps>,
-{
-    fn resolve_container<F: Fn() -> Deps>(ct: &'a SingletonContainer<T>, get_deps: F) -> &'a T {
-        let elem_ref = ct.get().get();
-        match elem_ref {
-            None => {
-                let needed = get_deps();
-                let dep = T::init(needed);
-                match ct.get().set(dep) {
-                    Ok(()) => {}
-                    Err(_) => unreachable!("Should never been reached"),
-                }
-                ct.get().get().expect("Should never been failed")
-            }
-            Some(dep) => dep,
-        }
-    }
-}
-
-impl<'a, T, SP, Index, Deps, Infer>
-    Resolver<'a, ByRefSingletonContainer<T>, &'a T, (Index, Deps, Infer)> for SP
-where
-    T: 'a,
-    SP: Selector<SingletonContainer<T>, Index> + GetDependencies<'a, Deps, Infer>,
-    ByRefSingletonContainer<T>: ResolveContainer<'a, &'a T, SingletonContainer<T>, Deps>,
-{
-    fn resolve(&'a self) -> &'a T {
-        ByRefSingletonContainer::resolve_container(self.get(), || self.get_deps())
-    }
-}
-
-#[derive(Debug)]
-pub struct ByRefInstanceContainer<T>(PhantomData<T>);
-impl<T> Container for ByRefInstanceContainer<T> {
-    type Data = ();
-
-    fn init(_: ()) -> Self {
-        Self(PhantomData)
-    }
-}
-impl<'a, T> ResolveContainer<'a, &'a T, InstanceContainer<T>, HNil> for ByRefInstanceContainer<T> {
-    fn resolve_container<F: Fn() -> HNil>(ct: &'a InstanceContainer<T>, _: F) -> &'a T {
-        ct.get()
-    }
-}
-impl<'a, T, SP, Index> Resolver<'a, ByRefInstanceContainer<T>, &'a T, Index> for SP
-where
-    SP: Selector<InstanceContainer<T>, Index>,
-    ByRefInstanceContainer<T>: ResolveContainer<'a, &'a T, InstanceContainer<T>, HNil>,
-{
-    fn resolve(&'a self) -> &'a T {
-        ByRefInstanceContainer::resolve_container(self.get(), || HNil)
     }
 }
 
