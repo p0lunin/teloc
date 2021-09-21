@@ -66,19 +66,7 @@ where
     T: Dependency<Deps> + 'a,
 {
     fn resolve_container<F: Fn() -> Deps>(ct: &'a Self, get_deps: F) -> &'a T {
-        let elem_ref = ct.get().get();
-        match elem_ref {
-            None => {
-                let needed = get_deps();
-                let dep = T::init(needed);
-                match ct.get().set(dep) {
-                    Ok(()) => {}
-                    Err(_) => unreachable!("Should never been reached"),
-                }
-                ct.get().get().expect("Should never been failed")
-            }
-            Some(dep) => dep,
-        }
+        ct.get().get_or_init(|| T::init(get_deps()))
     }
 }
 
