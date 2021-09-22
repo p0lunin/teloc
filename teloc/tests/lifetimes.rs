@@ -1,38 +1,37 @@
 use teloc::{inject, Dependency, Resolver, ServiceProvider};
-use uuid::Uuid;
 
 #[derive(Debug, PartialEq)]
-struct UUID(Uuid);
+struct Uuid(uuid::Uuid);
 #[inject]
-fn create_uuid() -> UUID {
-    UUID(Uuid::new_v4())
+fn create_uuid() -> Uuid {
+    Uuid(uuid::Uuid::new_v4())
 }
 
 #[derive(Dependency)]
 struct Transient {
-    u: UUID,
+    u: Uuid,
 }
 #[derive(Dependency)]
 struct Scoped {
-    u: UUID,
+    u: Uuid,
 }
 #[derive(Dependency)]
 struct Singleton {
-    u: UUID,
+    u: Uuid,
 }
 #[derive(Dependency)]
 struct Instance {
-    u: UUID,
+    u: Uuid,
 }
 
 #[test]
 fn test_lifetimes() {
     let provider = ServiceProvider::new()
-        .add_transient::<UUID>()
+        .add_transient::<Uuid>()
         .add_transient::<Transient>()
         .add_singleton::<Singleton>()
         .add_instance(Instance {
-            u: UUID::init(frunk::hlist![]),
+            u: Uuid::init(frunk::hlist![]),
         });
 
     let scope1 = provider.fork().add_singleton::<Scoped>();
