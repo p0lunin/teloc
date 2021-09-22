@@ -58,7 +58,7 @@ pub fn derive(
         }
     })
 }
-f
+
 pub fn derive_on_unit(ident: Ident, generics: &Generics) -> Result<TokenStream, TokenStream> {
     let impl_block_generics = get_impl_block_generics(generics);
     let struct_block_generics = get_struct_block_generics(generics);
