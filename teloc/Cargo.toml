@@ -1,6 +1,6 @@
 [package]
 name = "teloc"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["p0lunin <dmytro.polunin@gmail.com>"]
 edition = "2018"
 description = "Simple, compile-time DI framework for Rust"
@@ -19,9 +19,12 @@ actix-web = { version = "3", optional = true }
 actix-http = { version = "2", optional = true }
 actix-router = { version = "0.2", optional = true }
 pin-project = { version = "1", optional = true }
-frunk = "0.3.1"
+frunk = "0.4.0"
 once_cell = "1.4.1"
-teloc_macros = "0.1.0"
+
+[dependencies.teloc_macros]
+path = "../teloc_macros"
+version = "0.2.0"
 
 [dev-dependencies]
 uuid = { version = "0.8.1", features = ["v4"] }

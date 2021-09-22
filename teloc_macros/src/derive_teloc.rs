@@ -41,10 +41,10 @@ pub fn derive(
 
     Ok(quote! {
         impl #impl_block_generics
-            teloc::Dependency<teloc::reexport::Hlist![#(#ty_dep),*]>
+            teloc::Dependency<teloc::reexport::HList![#(#ty_dep),*]>
         for #ident #struct_block_generics #where_clause
         {
-            fn init(deps: teloc::reexport::Hlist![#(#ty_dep2),*]) -> Self {
+            fn init(deps: teloc::reexport::HList![#(#ty_dep2),*]) -> Self {
                 let #destructure = deps;
                 Self {
                     #(
@@ -66,10 +66,10 @@ pub fn derive_on_unit(ident: Ident, generics: &Generics) -> Result<TokenStream, 
 
     Ok(quote! {
         impl #impl_block_generics
-            teloc::Dependency<teloc::reexport::Hlist![]>
+            teloc::Dependency<teloc::reexport::HList![]>
         for #ident #struct_block_generics #where_clause
         {
-            fn init(_: teloc::reexport::Hlist![]) -> Self {
+            fn init(_: teloc::reexport::HList![]) -> Self {
                 #ident
             }
         }

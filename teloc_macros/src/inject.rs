@@ -43,8 +43,8 @@ pub fn expand(input: &InjectInput) -> Result<TokenStream, TokenStream> {
     };
 
     Ok(quote! {
-        impl #impl_block_generics teloc::Dependency<teloc::reexport::Hlist![#(#dependencies),*]> for #struct_ty #where_clause {
-            fn init(data: teloc::reexport::Hlist![#(#dependencies),*]) -> Self {
+        impl #impl_block_generics teloc::Dependency<teloc::reexport::HList![#(#dependencies),*]> for #struct_ty #where_clause {
+            fn init(data: teloc::reexport::HList![#(#dependencies),*]) -> Self {
                 let #destructure = data;
                 #init
             }
