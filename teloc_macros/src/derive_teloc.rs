@@ -17,9 +17,9 @@ pub fn derive(
         injectable,
     } = parse_teloc_struct(ds)?;
 
-    let impl_block_generics = get_impl_block_generics(&generics);
-    let struct_block_generics = get_struct_block_generics(&generics);
-    let where_clause = get_where_clause(&generics);
+    let impl_block_generics = get_impl_block_generics(generics);
+    let struct_block_generics = get_struct_block_generics(generics);
+    let where_clause = get_where_clause(generics);
 
     let init_field = initable.iter().map(|f| &f.field);
     let init_field_ty = initable.iter().map(|f| &f.field_ty);
@@ -60,9 +60,9 @@ pub fn derive(
 }
 
 pub fn derive_on_unit(ident: Ident, generics: &Generics) -> Result<TokenStream, TokenStream> {
-    let impl_block_generics = get_impl_block_generics(&generics);
-    let struct_block_generics = get_struct_block_generics(&generics);
-    let where_clause = get_where_clause(&generics);
+    let impl_block_generics = get_impl_block_generics(generics);
+    let struct_block_generics = get_struct_block_generics(generics);
+    let where_clause = get_where_clause(generics);
 
     Ok(quote! {
         impl #impl_block_generics
@@ -92,7 +92,7 @@ fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
                         initable.push(InitableField {
                             args: teloc.exprs,
                             field_ty,
-                            field: &field.ident.as_ref().unwrap(), // TODO: unnamed fields
+                            field: field.ident.as_ref().unwrap(), // TODO: unnamed fields
                         })
                     }
                     _ => unreachable!(),
@@ -101,7 +101,7 @@ fn parse_teloc_struct(ds: &DataStruct) -> Result<TelocStruct, TokenStream> {
             None => {
                 injectable.push(InjectableField {
                     field_ty: &field.ty,
-                    field: &field.ident.as_ref().unwrap(), // TODO: unnamed fields
+                    field: field.ident.as_ref().unwrap(), // TODO: unnamed fields
                 })
             }
         }
