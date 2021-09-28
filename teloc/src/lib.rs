@@ -65,7 +65,6 @@ mod dependency;
 pub mod dev;
 mod get_dependencies;
 mod index;
-mod lifetime;
 mod resolver;
 mod service_provider;
 
