@@ -1,5 +1,6 @@
-use crate::common::{compile_error, get_1_method, ident_generator};
+use crate::common::{compile_error, ident_generator};
 use crate::generics::{get_impl_block_generics, get_where_clause};
+use crate::parse::ParseInjectImpl;
 use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseBuffer};
@@ -88,9 +89,12 @@ impl Parse for InjectInput {
         if let Ok(f) = input.parse::<ItemFn>() {
             Ok(Self::Function(f))
         } else {
-            let item: ItemImpl = input.parse()?;
-            let assoc = get_1_method(item.clone())?;
-            Ok(Self::Impl(item, assoc))
+            let item_impl: ItemImpl = input.parse()?;
+            let ParseInjectImpl {
+                item_impl,
+                init_method,
+            } = ParseInjectImpl::parse(item_impl)?;
+            Ok(Self::Impl(item_impl, init_method))
         }
     }
 }
