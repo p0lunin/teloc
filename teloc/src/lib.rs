@@ -72,6 +72,7 @@ mod service_provider;
 pub use actix_support::DiActixHandler;
 
 pub use {
+    container::ResolveContainer,
     dependency::Dependency,
     resolver::Resolver,
     service_provider::ServiceProvider,

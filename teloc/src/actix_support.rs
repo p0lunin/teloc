@@ -1,13 +1,13 @@
 //! Support for `actix-web` crate.
 #![allow(unsafe_code)]
 
+use crate::container::Container;
 use crate::dependency::DependencyClone;
-use crate::{container::InstanceContainer, Resolver, ServiceProvider};
+use crate::{ResolveContainer, Resolver, ServiceProvider};
 use actix_web::dev::*;
 use actix_web::web::Data;
 use actix_web::Responder;
 use actix_web::{http, FromRequest, HttpRequest};
-use frunk::hlist::Selector;
 use frunk::{HCons, HNil};
 use std::cell::Ref;
 use std::future::Future;
@@ -50,10 +50,7 @@ impl<ParSP, DepsSP, ScopeFactory, F, ScopeResult, Args, Infers>
     DiActixHandler<ServiceProvider<ParSP, DepsSP>, ScopeFactory, F, ScopeResult, Args, Infers>
 where
     ScopeFactory: Fn(
-            ServiceProvider<
-                Arc<ServiceProvider<ParSP, DepsSP>>,
-                HCons<InstanceContainer<HttpRequest>, HNil>,
-            >,
+            ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<HttpRequestContainer, HNil>>,
         ) -> ScopeResult
         + Clone
         + 'static,
@@ -161,7 +158,7 @@ macro_rules! impl_factory_di_args {
             F: Clone + Fn($($arg,)* $($param),*) -> Res,
             Res: Future,
             Res::Output: Responder,
-            ScopeFactory: Fn(ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<InstanceContainer<HttpRequest>, HNil>>) -> ScopeResult + Clone + 'static,
+            ScopeFactory: Fn(ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<HttpRequestContainer, HNil>>) -> ScopeResult + Clone + 'static,
             ScopeResult: $(Resolver<'static, $cont, $arg, $other> +)* 'static,
             Self: 'static,
         {
@@ -171,7 +168,7 @@ macro_rules! impl_factory_di_args {
                 -> Pin<Box<SpFuture<ScopeResult, Pin<Box<dyn Future<Output=Res::Output>>>>>>
             {
                 let (req, $($param,)*) = data;
-                let forked = self.sp.fork_arc().add_instance(req);
+                let forked = self.sp.fork_arc()._add::<HttpRequestContainer>(req);
                 let scope = Box::new((self.scope_factory)(forked));
                 let ptr = Box::into_raw(scope);
                 SpFuture::new(ptr, move |sp| {
@@ -218,24 +215,29 @@ impl_factory_di!(0, B1, 1, B2, 2, B3, 3, B4, 4, B5, 5, B6, 6, B7, 7, B8, 8, B9);
 
 impl DependencyClone for HttpRequest {}
 
-pub struct GetRequestData<T>(T);
+pub struct HttpRequestContainer(HttpRequest);
 
-macro_rules! impl_resolver_for_request {
+impl Container for HttpRequestContainer {
+    type Data = HttpRequest;
+
+    fn init(req: Self::Data) -> Self {
+        Self(req)
+    }
+}
+
+macro_rules! impl_resolve_container_for_request {
     ($(($ty:ty, $get:expr)),*) => {
         $(
-        impl<'a, SP, Index> Resolver<'a, GetRequestData<$ty>, $ty, Index> for SP
-        where
-            Self: Selector<InstanceContainer<HttpRequest>, Index>,
-        {
-            fn resolve(&'a self) -> $ty {
-                $get(self.get().get())
+        impl<'a> ResolveContainer<'a, $ty, HNil> for HttpRequestContainer {
+            fn resolve_container<F: Fn() -> HNil>(&'a self, _: F) -> $ty {
+                $get(&self.0)
             }
         }
         )*
     };
 }
 
-impl_resolver_for_request! (
+impl_resolve_container_for_request! (
     (&'a actix_http::RequestHead, |req: &'a HttpRequest| req.head()),
     (&'a http::Uri, |req: &'a HttpRequest| req.uri()),
     (&'a http::Method, |req: &'a HttpRequest| req.method()),
@@ -249,13 +251,11 @@ impl_resolver_for_request! (
     (&'a AppConfig, |req: &'a HttpRequest| req.app_config())
 );
 
-impl<'a, T, SP, Index> Resolver<'a, GetRequestData<Option<&'a Data<T>>>, Option<&'a Data<T>>, Index>
-    for SP
+impl<'a, T> ResolveContainer<'a, Option<&'a Data<T>>, HNil> for HttpRequestContainer
 where
     T: 'static,
-    Self: Selector<InstanceContainer<HttpRequest>, Index>,
 {
-    fn resolve(&'a self) -> Option<&'a Data<T>> {
-        self.get().get().app_data::<Data<T>>()
+    fn resolve_container<F: Fn() -> HNil>(&'a self, _: F) -> Option<&'a Data<T>> {
+        self.0.app_data::<Data<T>>()
     }
 }

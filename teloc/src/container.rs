@@ -23,6 +23,18 @@ pub trait ResolveContainer<'a, T, Deps> {
     fn resolve_container<F: Fn() -> Deps>(&'a self, deps: F) -> T;
 }
 
+impl<'a, Cont, T, SP, Index, Deps, Infer> Resolver<'a, Cont, T, (Index, Deps, Infer)> for SP
+where
+    SP: GetDependencies<'a, Deps, Infer> + Selector<Cont, Index>,
+    Cont: ResolveContainer<'a, T, Deps> + 'a,
+    T: 'a,
+    Deps: 'a,
+{
+    fn resolve(&'a self) -> T {
+        Cont::resolve_container(self.get(), || self.get_deps())
+    }
+}
+
 #[derive(Debug)]
 pub struct TransientContainer<T>(PhantomData<T>);
 impl<T> Container for TransientContainer<T> {
@@ -40,20 +52,16 @@ where
         T::init(get_deps())
     }
 }
-impl<'a, T, SP, Index, Deps, Infer> Resolver<'a, TransientContainer<T>, T, (Index, Deps, Infer)>
-    for SP
-where
-    SP: Selector<TransientContainer<T>, Index> + GetDependencies<'a, Deps, Infer>,
-    T: Dependency<Deps> + 'a,
-    TransientContainer<T>: ResolveContainer<'a, T, Deps>,
-{
-    fn resolve(&'a self) -> T {
-        TransientContainer::resolve_container(self.get(), || self.get_deps())
-    }
-}
 
 #[derive(Debug)]
 pub struct SingletonContainer<T>(OnceCell<T>);
+impl<T> SingletonContainer<T> {
+    #[inline]
+    pub fn get(&self) -> &OnceCell<T> {
+        &self.0
+    }
+}
+
 impl<T> Container for SingletonContainer<T> {
     type Data = ();
 
@@ -61,6 +69,7 @@ impl<T> Container for SingletonContainer<T> {
         Self(OnceCell::new())
     }
 }
+
 impl<'a, T, Deps> ResolveContainer<'a, &'a T, Deps> for SingletonContainer<T>
 where
     T: Dependency<Deps> + 'a,
@@ -70,39 +79,24 @@ where
     }
 }
 
-impl<'a, T, SP, Index, Deps, Infer> Resolver<'a, SingletonContainer<T>, T, (Index, Deps, Infer)>
-    for SP
+impl<'a, T, Deps> ResolveContainer<'a, T, Deps> for SingletonContainer<T>
 where
-    SingletonContainer<T>: ResolveContainer<'a, &'a T, Deps>,
     T: Dependency<Deps> + DependencyClone + 'a,
-    Deps: 'a,
-    SP: GetDependencies<'a, Deps, Infer> + Selector<SingletonContainer<T>, Index>,
 {
-    fn resolve(&'a self) -> T {
-        SingletonContainer::resolve_container(self.get(), || self.get_deps()).clone()
-    }
-}
-impl<'a, T, SP, Index, Deps, Infer> Resolver<'a, SingletonContainer<T>, &'a T, (Index, Deps, Infer)>
-    for SP
-where
-    SingletonContainer<T>: ResolveContainer<'a, &'a T, Deps>,
-    T: Dependency<Deps> + 'a,
-    Deps: 'a,
-    SP: GetDependencies<'a, Deps, Infer> + Selector<SingletonContainer<T>, Index>,
-{
-    fn resolve(&'a self) -> &'a T {
-        SingletonContainer::resolve_container(self.get(), || self.get_deps())
-    }
-}
-impl<T> SingletonContainer<T> {
-    #[inline]
-    pub fn get(&self) -> &OnceCell<T> {
-        &self.0
+    fn resolve_container<F: Fn() -> Deps>(&'a self, get_deps: F) -> T {
+        self.get().get_or_init(|| T::init(get_deps())).clone()
     }
 }
 
 #[derive(Debug)]
 pub struct InstanceContainer<T>(T);
+impl<T> InstanceContainer<T> {
+    #[inline]
+    pub fn get(&self) -> &T {
+        &self.0
+    }
+}
+
 impl<T> Container for InstanceContainer<T> {
     type Data = T;
 
@@ -115,33 +109,24 @@ impl<'a, T> ResolveContainer<'a, &'a T, HNil> for InstanceContainer<T> {
         &self.0
     }
 }
-impl<'a, T, SP, Index> Resolver<'a, InstanceContainer<T>, T, Index> for SP
+
+impl<'a, T> ResolveContainer<'a, T, HNil> for InstanceContainer<T>
 where
-    T: DependencyClone + 'a,
-    SP: Selector<InstanceContainer<T>, Index>,
-    InstanceContainer<T>: ResolveContainer<'a, &'a T, HNil>,
+    T: DependencyClone,
 {
-    fn resolve(&'a self) -> T {
-        InstanceContainer::resolve_container(self.get(), || HNil).clone()
-    }
-}
-impl<'a, T, SP, Index> Resolver<'a, InstanceContainer<T>, &'a T, Index> for SP
-where
-    SP: Selector<InstanceContainer<T>, Index>,
-    InstanceContainer<T>: ResolveContainer<'a, &'a T, HNil>,
-{
-    fn resolve(&'a self) -> &'a T {
-        InstanceContainer::resolve_container(self.get(), || HNil)
-    }
-}
-impl<T> InstanceContainer<T> {
-    #[inline]
-    pub fn get(&self) -> &T {
-        &self.0
+    fn resolve_container<F: Fn() -> HNil>(&'a self, _: F) -> T {
+        self.0.clone()
     }
 }
 
 pub struct ConvertContainer<Cont, T, U>(Cont, PhantomData<(T, U)>);
+impl<Cont, ContT, T> ConvertContainer<Cont, ContT, T> {
+    #[inline]
+    pub fn get(&self) -> &Cont {
+        &self.0
+    }
+}
+
 impl<Cont, T, U> Container for ConvertContainer<Cont, T, U>
 where
     Cont: Container,
@@ -152,6 +137,7 @@ where
         Self(Cont::init(data), PhantomData)
     }
 }
+
 impl<'a, Cont, T, U, Deps> ResolveContainer<'a, U, Deps> for ConvertContainer<Cont, T, U>
 where
     Cont: ResolveContainer<'a, T, Deps>,
@@ -159,25 +145,5 @@ where
 {
     fn resolve_container<F: Fn() -> Deps>(&'a self, deps: F) -> U {
         Cont::resolve_container(&self.0, deps).into()
-    }
-}
-impl<'a, Cont, T, U, SP, Index, Deps, Infer>
-    Resolver<'a, ConvertContainer<Cont, T, U>, U, (Index, Deps, Infer)> for SP
-where
-    U: 'a,
-    Deps: 'a,
-    Cont: 'a,
-    T: Into<U> + 'a,
-    ConvertContainer<Cont, T, U>: ResolveContainer<'a, U, Deps>,
-    SP: Selector<ConvertContainer<Cont, T, U>, Index> + GetDependencies<'a, Deps, Infer>,
-{
-    fn resolve(&'a self) -> U {
-        ConvertContainer::resolve_container(self.get(), || self.get_deps())
-    }
-}
-impl<Cont, ContT, T> ConvertContainer<Cont, ContT, T> {
-    #[inline]
-    pub fn get(&self) -> &Cont {
-        &self.0
     }
 }
