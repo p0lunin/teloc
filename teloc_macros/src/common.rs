@@ -2,8 +2,8 @@ use itertools::Itertools;
 use proc_macro2::{Ident, Span, TokenStream};
 use quote::quote;
 use quote::ToTokens;
-use syn::spanned::Spanned;
-use syn::{Attribute, ImplItem, ImplItemMethod, ItemImpl};
+use syn::Path;
+use syn::{Attribute, ImplItemMethod};
 
 pub fn compile_error<T: ToTokens>(data: T) -> proc_macro2::TokenStream {
     quote! {
@@ -28,20 +28,22 @@ pub fn get_1_teloc_attr(attrs: &[Attribute]) -> Result<Option<&Attribute>, Token
     }
 }
 
-pub fn get_1_method(item: ItemImpl) -> Result<ImplItemMethod, syn::Error> {
-    let span = item.span();
-    let methods = item
-        .items
+pub fn strip_annotation_by_path(
+    methods: Vec<ImplItemMethod>,
+    annotation_path: Path,
+) -> Vec<ImplItemMethod> {
+    methods
         .into_iter()
-        .filter_map(|x| match x {
-            ImplItem::Method(method) => Some(method),
-            _ => None,
+        .map(|method| {
+            let attrs = method
+                .attrs
+                .into_iter()
+                .filter(|attr| attr.path != annotation_path)
+                .collect();
+
+            ImplItemMethod { attrs, ..method }
         })
-        .collect::<Vec<_>>();
-    match methods.as_slice() {
-        [_] => Ok(methods.into_iter().next().unwrap()),
-        _ => Err(syn::Error::new(span, "Expected one method in impl!")),
-    }
+        .collect()
 }
 
 pub fn ident_generator(count: usize) -> Vec<Ident> {

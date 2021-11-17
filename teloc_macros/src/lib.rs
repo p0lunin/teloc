@@ -2,6 +2,7 @@ mod common;
 mod derive_teloc;
 mod generics;
 mod inject;
+mod parse;
 
 extern crate proc_macro;
 extern crate quote;
