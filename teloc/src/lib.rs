@@ -58,11 +58,12 @@
 
 #![deny(unsafe_code)]
 
+pub mod dev;
+
 #[cfg(feature = "actix-support")]
 mod actix_support;
 mod container;
 mod dependency;
-pub mod dev;
 mod get_dependencies;
 mod index;
 mod resolver;

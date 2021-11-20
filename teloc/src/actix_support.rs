@@ -1,13 +1,14 @@
 //! Support for `actix-web` crate.
 #![allow(unsafe_code)]
 
+use crate::container::InstanceContainer;
 use crate::dependency::DependencyClone;
-use crate::{container::InstanceContainer, Resolver, ServiceProvider};
+use crate::service_provider::SelectContainer;
+use crate::{Resolver, ServiceProvider};
 use actix_web::dev::*;
 use actix_web::web::Data;
 use actix_web::Responder;
 use actix_web::{http, FromRequest, HttpRequest};
-use frunk::hlist::Selector;
 use frunk::{HCons, HNil};
 use std::cell::Ref;
 use std::future::Future;
@@ -162,7 +163,7 @@ macro_rules! impl_factory_di_args {
             Res: Future,
             Res::Output: Responder,
             ScopeFactory: Fn(ServiceProvider<Arc<ServiceProvider<ParSP, DepsSP>>, HCons<InstanceContainer<HttpRequest>, HNil>>) -> ScopeResult + Clone + 'static,
-            ScopeResult: $(Resolver<'static, $cont, $arg, $other> +)* 'static,
+            ScopeResult: $(Resolver<'static, &'static $cont, $arg, $other> +)* 'static,
             Self: 'static,
         {
             #[allow(non_snake_case)]
@@ -223,9 +224,9 @@ pub struct GetRequestData<T>(T);
 macro_rules! impl_resolver_for_request {
     ($(($ty:ty, $get:expr)),*) => {
         $(
-        impl<'a, SP, Index> Resolver<'a, GetRequestData<$ty>, $ty, Index> for SP
+        impl<'a, SP, Index> Resolver<'a, &'a GetRequestData<$ty>, $ty, Index> for SP
         where
-            Self: Selector<InstanceContainer<HttpRequest>, Index>,
+            Self: SelectContainer<'a, &'a InstanceContainer<HttpRequest>, Index>,
         {
             fn resolve(&'a self) -> $ty {
                 $get(self.get().get())
@@ -249,11 +250,11 @@ impl_resolver_for_request! (
     (&'a AppConfig, |req: &'a HttpRequest| req.app_config())
 );
 
-impl<'a, T, SP, Index> Resolver<'a, GetRequestData<Option<&'a Data<T>>>, Option<&'a Data<T>>, Index>
-    for SP
+impl<'a, T, SP, Index>
+    Resolver<'a, &'a GetRequestData<Option<&'a Data<T>>>, Option<&'a Data<T>>, Index> for SP
 where
     T: 'static,
-    Self: Selector<InstanceContainer<HttpRequest>, Index>,
+    Self: SelectContainer<'a, &'a InstanceContainer<HttpRequest>, Index>,
 {
     fn resolve(&'a self) -> Option<&'a Data<T>> {
         self.get().get().app_data::<Data<T>>()

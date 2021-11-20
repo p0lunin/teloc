@@ -4,7 +4,6 @@ use crate::container::{
 use crate::index::{ParentIndex, SelfIndex};
 use frunk::hlist::{HList, Selector};
 use frunk::{HCons, HNil};
-use std::ops::Deref;
 use std::rc::Rc;
 use std::sync::Arc;
 
@@ -51,8 +50,8 @@ use std::sync::Arc;
 /// ```
 #[derive(Debug)]
 pub struct ServiceProvider<Parent, Conts> {
-    parent: Parent,
-    containers: Conts,
+    pub(crate) parent: Parent,
+    pub(crate) containers: Conts,
 }
 
 #[derive(Debug)]
@@ -124,7 +123,7 @@ impl<Parent, Conts: HList> ServiceProvider<Parent, Conts> {
     ///
     /// ```
     /// use teloc::*;
-    /// use teloc::dev::container::TransientContainer;
+    /// use teloc::dev::TransientContainer;
     ///
     /// struct Service {
     ///     data: i32,
@@ -351,31 +350,78 @@ impl<Parent, Conts: HList> ServiceProvider<Parent, Conts> {
     }
 }
 
-impl<Parent, Conts, T, Index> Selector<T, SelfIndex<Index>> for ServiceProvider<Parent, Conts>
-where
-    Conts: Selector<T, Index>,
-{
-    fn get(&self) -> &T {
-        self.dependencies().get()
-    }
+/// Borrow containers from a ServiceProvider.
+///
+/// ```
+/// # use teloc::{Dependency, Resolver, ServiceProvider};
+/// # use teloc::dev::*;
+/// let cont: &InstanceContainer<i32> =
+///     ServiceProvider::new().add_instance(10i32).get();
+/// ```
+///
+/// Can borrow containers from a forked ServiceProvider that would outlive the fork
+///
+/// ```
+/// # use teloc::*;
+/// # use teloc::dev::*;
+/// let provider = ServiceProvider::new().add_instance(10i32);
+/// let invalid_singleton: &InstanceContainer<i32> = {
+///     let provider = provider.fork();
+///     provider.get()
+/// };
+///```
+///
+/// Cannot borrow containers from a ServiceProvider that would outlive the ServiceProvider
+///
+/// ```compile_fail
+/// # use teloc::*;
+/// # use teloc::dev::*;
+/// let invalid_singleton: &InstanceContainer<i32> = {
+///     let provider = ServiceProvider::new().add_instance(10i32);
+///     provider.get()
+/// };
+///```
+pub trait SelectContainer<'a, Cont, Index> {
+    fn get(&'a self) -> Cont;
+}
 
-    /// NEVER CALL THIS
-    fn get_mut(&mut self) -> &mut T {
-        unreachable!()
+impl<'this, Parent, Conts, Cont, Index> SelectContainer<'this, &'this Cont, SelfIndex<Index>>
+    for ServiceProvider<Parent, Conts>
+where
+    Conts: Selector<Cont, Index>,
+{
+    fn get(&'this self) -> &'this Cont {
+        self.dependencies().get()
     }
 }
 
-impl<Parent, Conts, T, Index> Selector<T, ParentIndex<Index>> for ServiceProvider<Parent, Conts>
+impl<'this, 'parent, 'cont, Parent, Conts, Cont, Index>
+    SelectContainer<'this, &'cont Cont, ParentIndex<Index>>
+    for ServiceProvider<&'parent Parent, Conts>
 where
-    Parent: Deref,
-    Parent::Target: Selector<T, Index>,
+    Parent: SelectContainer<'parent, &'cont Cont, Index>,
 {
-    fn get(&self) -> &T {
-        self.parent.deref().get()
+    fn get(&'this self) -> &'cont Cont {
+        self.parent.get()
     }
+}
 
-    /// NEVER CALL THIS
-    fn get_mut(&mut self) -> &mut T {
-        unreachable!()
+impl<'this, 'cont, Parent, Conts, Cont, Index>
+    SelectContainer<'this, &'cont Cont, ParentIndex<Index>> for ServiceProvider<Rc<Parent>, Conts>
+where
+    Parent: SelectContainer<'this, &'cont Cont, Index>,
+{
+    fn get(&'this self) -> &'cont Cont {
+        self.parent.get()
+    }
+}
+
+impl<'this, 'cont, Parent, Conts, Cont, Index>
+    SelectContainer<'this, &'cont Cont, ParentIndex<Index>> for ServiceProvider<Arc<Parent>, Conts>
+where
+    Parent: SelectContainer<'this, &'cont Cont, Index>,
+{
+    fn get(&'this self) -> &'cont Cont {
+        self.parent.get()
     }
 }

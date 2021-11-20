@@ -1,9 +1,6 @@
 //! The module for the advanced usage.
 
-pub use crate::{dependency::DependencyClone, get_dependencies::GetDependencies};
-
-pub mod container {
-    //! Things needs to define your own containers.
-
-    pub use crate::container::*;
-}
+pub use crate::container::*;
+pub use crate::dependency::DependencyClone;
+pub use crate::get_dependencies::GetDependencies;
+pub use crate::service_provider::SelectContainer;
