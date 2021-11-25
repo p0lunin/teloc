@@ -46,7 +46,7 @@ where
 
 /// Trait is used to resolve services by cloning. It must be implement only for wrappers that
 /// guarantees that there are only one instance and many references, like `Rc`, `Arc` structs and
-/// immutable reference. For comfort implement for primitive number types.
+/// immutable reference.
 pub trait DependencyClone: Clone {}
 
 impl<D> DependencyClone for Rc<D> {}
