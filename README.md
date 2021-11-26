@@ -24,11 +24,11 @@ Teloc is simple, compile-time DI framework for Rust inspired by
 > (a client) that would use it. 
 
 ## Highlights
-- **Compile-time** - teloc uses powerful rust type system for lifetime and existing of dependencies checking in 
-compile-time. That means that you cannot build your code if you do not register dependencies for all of registered 
-dependencies or lifetime of dependency does not correspondence to requester. If your code is compile, that mean it run!
+- **Compile-time** - teloc uses the powerful rust type system check for the existence of dependencies that have the
+proper lifetime at compile-time. This means you cannot compile your code if a required dependency has not been registered
+or if it's lifetime is shorter to what's requested. If your code compiles, that means it runs!
 - **Zero-overhead** - teloc uses only zero-overhead abstractions such as traits, generics, newtypes and unit types, and
-compile-time resolving of dependencies, so you don't worry about overhead in runtime.
+compile-time resolving of dependencies, so you don't worry about overhead at runtime.
 - **Simple API** - teloc provides you a simple API with only one struct and one attribute macro needed for working with
 library.
 - **Integration with existing enviroment** - teloc can be used with any existing frameworks like actix-web, warp, rocket. 
