@@ -148,7 +148,7 @@ pass as an argument.
 What you need:
 1. Paste following code after `ServiceProvider` initialization: `let () = service_provider;`.
 2. Compiler will give you very big terrible type starting with `teloc::ServiceProvider<...>`.
-3. Copy that type into type alias, for example `type ConcreteSP = /*copiler output*/;`.
+3. Copy that type into type alias, for example `type ConcreteSP = /*compiler output*/;`.
 4. Use `ConcreteSP` when you want write `ServiceProvider` instance type.
 5. If you change `ServiceProvider` initialization repeat steps 1-4.
 
