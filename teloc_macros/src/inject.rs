@@ -66,7 +66,7 @@ fn get_struct_ty(inp: &InjectInput) -> Result<&Type, TokenStream> {
 }
 
 pub enum InjectInput {
-    Impl(ItemImpl, ImplItemMethod),
+    Impl(ItemImpl, Box<ImplItemMethod>),
     Function(ItemFn),
 }
 impl InjectInput {
@@ -94,7 +94,7 @@ impl Parse for InjectInput {
                 item_impl,
                 init_method,
             } = ParseInjectImpl::parse(item_impl)?;
-            Ok(Self::Impl(item_impl, init_method))
+            Ok(Self::Impl(item_impl, Box::new(init_method)))
         }
     }
 }
