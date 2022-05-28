@@ -58,8 +58,6 @@
 
 #![deny(unsafe_code)]
 
-pub mod dev;
-
 #[cfg(feature = "actix-support")]
 mod actix_support;
 mod container;
@@ -73,9 +71,11 @@ mod service_provider;
 pub use actix_support::DiActixHandler;
 
 pub use {
-    dependency::Dependency,
+    container::*,
+    dependency::{Dependency, DependencyClone},
+    get_dependencies::GetDependencies,
     resolver::Resolver,
-    service_provider::{EmptyServiceProvider, ServiceProvider},
+    service_provider::{EmptyServiceProvider, SelectContainer, ServiceProvider},
     teloc_macros::{inject, Dependency},
 };
 

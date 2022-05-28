@@ -123,7 +123,6 @@ impl<Parent, Conts: HList> ServiceProvider<Parent, Conts> {
     ///
     /// ```
     /// use teloc::*;
-    /// use teloc::dev::TransientContainer;
     ///
     /// struct Service {
     ///     data: i32,
@@ -353,8 +352,7 @@ impl<Parent, Conts: HList> ServiceProvider<Parent, Conts> {
 /// Borrow containers from a ServiceProvider.
 ///
 /// ```
-/// # use teloc::{Dependency, Resolver, ServiceProvider};
-/// # use teloc::dev::*;
+/// # use teloc::*;
 /// let cont: &InstanceContainer<i32> =
 ///     ServiceProvider::new().add_instance(10i32).get();
 /// ```
@@ -363,7 +361,6 @@ impl<Parent, Conts: HList> ServiceProvider<Parent, Conts> {
 ///
 /// ```
 /// # use teloc::*;
-/// # use teloc::dev::*;
 /// let provider = ServiceProvider::new().add_instance(10i32);
 /// let invalid_singleton: &InstanceContainer<i32> = {
 ///     let provider = provider.fork();
