@@ -98,3 +98,56 @@ jobs:
       - name: Test
         run: cd teloc_macros && cargo test
 
+  release-github:
+    name: Release on GitHub
+    needs:
+      - code-checks-teloc
+      - code-checks-macros
+      - test-teloc
+      - build-macro
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Parse release version
+        id: release
+        run: echo ::set-output name=VERSION::${GITHUB_REF#refs/tags/v}
+      - name: Verify release version matches `teloc_macros` Cargo manifest
+        run: >-
+          test "${{ steps.release.outputs.VERSION }}" \
+            == "$(grep -m1 'version = "' teloc_macros/Cargo.toml | cut -d '"' -f2)"
+      - name: Verify release version matches `teloc` Cargo manifest
+        run: >-
+          test "${{ steps.release.outputs.VERSION }}" \
+            == "$(grep -m1 'version = "' teloc/Cargo.toml | cut -d '"' -f2)"
+      - uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          name: ${{ steps.release.outputs.VERSION }}
+          body: |
+            [API docs](https://docs.rs/cucumber/${{ steps.release.outputs.VERSION }})
+          prerelease: ${{ contains(steps.release.outputs.VERSION, '-') }}
+
+  release-crate:
+    name: Release on crates.io
+    needs: ["release-github"]
+    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+
+      - name: Publish `teloc_macros` crate
+        run: cargo publish -p teloc_macros
+                           --token ${{ secrets.CRATESIO_TOKEN }}
+
+      - name: Wait crates.io index is updated
+        run: sleep 120
+
+      - name: Publish `teloc` crate
+        run: cargo publish -p teloc
+                           --token ${{ secrets.CRATESIO_TOKEN }}
