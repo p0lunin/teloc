@@ -1,6 +1,7 @@
-use std::cell::RefCell;
-use std::rc::Rc;
-use std::sync::Arc;
+use core::cell::RefCell;
+
+#[cfg(feature = "alloc")]
+use alloc::{boxed::Box, rc::Rc, sync::Arc};
 
 /// Trait is used to working with `Resolver` trait. If you want that your service can be resolved by
 /// `Resolver`, you may implement this trait for your service. There are three ways:
@@ -11,6 +12,7 @@ pub trait Dependency<Deps> {
     fn init(deps: Deps) -> Self;
 }
 
+#[cfg(feature = "alloc")]
 impl<Deps, D> Dependency<Deps> for Rc<D>
 where
     D: Dependency<Deps>,
@@ -19,6 +21,7 @@ where
         Rc::new(D::init(deps))
     }
 }
+
 impl<Deps, D> Dependency<Deps> for RefCell<D>
 where
     D: Dependency<Deps>,
@@ -27,6 +30,8 @@ where
         RefCell::new(D::init(deps))
     }
 }
+
+#[cfg(feature = "alloc")]
 impl<Deps, D> Dependency<Deps> for Box<D>
 where
     D: Dependency<Deps>,
@@ -35,6 +40,8 @@ where
         Box::new(D::init(deps))
     }
 }
+
+#[cfg(feature = "alloc")]
 impl<Deps, D> Dependency<Deps> for Arc<D>
 where
     D: Dependency<Deps>,
@@ -49,8 +56,10 @@ where
 /// immutable reference.
 pub trait DependencyClone: Clone {}
 
+#[cfg(feature = "alloc")]
 impl<D> DependencyClone for Rc<D> {}
 
+#[cfg(feature = "alloc")]
 impl<D> DependencyClone for Arc<D> {}
 
 impl<D> DependencyClone for &D {}

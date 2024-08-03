@@ -4,8 +4,9 @@ use crate::container::{
 use crate::index::{ParentIndex, SelfIndex};
 use frunk::hlist::{HList, Selector};
 use frunk::{HCons, HNil};
-use std::rc::Rc;
-use std::sync::Arc;
+
+#[cfg(feature = "alloc")]
+use alloc::{rc::Rc, sync::Arc};
 
 /// `ServiceProvider` struct is used as an IoC-container in which you declare your dependencies.
 ///
@@ -89,6 +90,7 @@ impl<Parent, Conts> ServiceProvider<Parent, Conts> {
 
     /// Forking `ServiceProvider` creates a new `ServiceProvider` with reference to the parent.
     /// `resolve` method on forked `ServiceProvider` will find dependencies form self and parent.
+    #[cfg(feature = "alloc")]
     pub fn fork_rc(self: &Rc<ServiceProvider<Parent, Conts>>) -> ServiceProvider<Rc<Self>, HNil> {
         ServiceProvider {
             parent: self.clone(),
@@ -98,6 +100,7 @@ impl<Parent, Conts> ServiceProvider<Parent, Conts> {
 
     /// Forking `ServiceProvider` creates a new `ServiceProvider` with reference to the parent.
     /// `resolve` method on forked `ServiceProvider` will find dependencies form self and parent.
+    #[cfg(feature = "alloc")]
     pub fn fork_arc(
         self: &Arc<ServiceProvider<Parent, Conts>>,
     ) -> ServiceProvider<Arc<Self>, HNil> {
@@ -403,6 +406,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'this, 'cont, Parent, Conts, Cont, Index>
     SelectContainer<'this, &'cont Cont, ParentIndex<Index>> for ServiceProvider<Rc<Parent>, Conts>
 where
@@ -413,6 +417,7 @@ where
     }
 }
 
+#[cfg(feature = "alloc")]
 impl<'this, 'cont, Parent, Conts, Cont, Index>
     SelectContainer<'this, &'cont Cont, ParentIndex<Index>> for ServiceProvider<Arc<Parent>, Conts>
 where

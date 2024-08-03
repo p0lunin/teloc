@@ -55,8 +55,11 @@
 //! let controller: Controller = scope.resolve();
 //! assert_eq!(*controller.number_service.number, 10);
 //! ```
-
+#![cfg_attr(not(any(feature = "std", test)), no_std)]
 #![deny(unsafe_code)]
+
+#[cfg(feature = "alloc")]
+extern crate alloc;
 
 #[cfg(feature = "actix-support")]
 mod actix_support;

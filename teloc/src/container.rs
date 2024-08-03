@@ -2,9 +2,9 @@ use crate::dependency::DependencyClone;
 use crate::get_dependencies::GetDependencies;
 use crate::service_provider::SelectContainer;
 use crate::{Dependency, Resolver};
+use core::marker::PhantomData;
 use frunk::HNil;
 use once_cell::sync::OnceCell;
-use std::marker::PhantomData;
 
 /// Init is a trait used in [`ServiceProvider`] for create an empty version of `Container`. If you
 /// create your own version of container and you want that it can work with other container like
